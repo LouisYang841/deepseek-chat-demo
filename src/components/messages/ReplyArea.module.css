@@ -2,15 +2,44 @@
   margin-bottom: 10px;
 }
 
+/* 官方 ._245c867：吸顶标题栏（sticky / top:var(--group-title-sticky-top) / z-index 7 / 高 34 / 下边距 2） */
 .title {
   display: flex;
   align-items: center;
-  height: 34px;
+  position: sticky;
+  top: var(--group-title-sticky-top, 0);
+  z-index: 7;
+  width: 100%;
+  height: var(--collapsible-area-title-height, 34px);
+  max-height: var(--collapsible-area-title-height, 34px);
   margin-bottom: 2px;
+  pointer-events: all;
+  /* 吸顶后盖住下方滚动的思考正文（官方 :before/:after 用同一底色） */
+  background-color: var(--dsw-alias-bg-base);
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   user-select: none;
   transition: color 0.2s;
+
+  /* 官方 :before / :after：用底色盖住标题栏上方 1px 与右侧，避免内容从缝隙透出 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: calc(-1 * var(--group-title-sticky-base-top, 0px) - 1px);
+    width: 100%;
+    height: calc(var(--group-title-sticky-base-top, 0px) + 1px);
+    background-color: var(--dsw-alias-bg-base);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: 0;
+    z-index: -1;
+    height: calc(100% + 1px);
+    background-color: var(--dsw-alias-bg-base);
+  }
 
   &:hover {
     color: var(--dsw-alias-label-primary);

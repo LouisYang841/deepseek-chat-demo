@@ -4,6 +4,8 @@ English | [简体中文](README.zh-CN.md)
 
 A static chat demo powered by the DeepSeek API. No application backend is required: the browser connects directly to the configured API service.
 
+This repository is an unofficial derivative of [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo), rebuilt and extended for UI research. It is not affiliated with or endorsed by DeepSeek.
+
 You can [try the app online](https://deepseek-ai.github.io/chat-demo/) or download the archive from [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases), extract it, and double-click `index.html` to use it locally without installation or a build. Enter your API key in Settings before your first chat.
 
 ## Getting started
@@ -32,12 +34,16 @@ The output is written to `dist/`. Deploy it to a static web server or open `dist
 - Multiple conversations with automatic titles, renaming, and deletion; edit prompts, regenerate replies, and switch between message branches.
 - Streaming replies, deep thinking, smart search, link reading, and source citations; stop generation or continue eligible replies.
 - Upload, paste, or drag and drop attachments; use voice input and read replies aloud. A live audio spectrum appears in the first row of the input area while recording on mobile.
-- Markdown, syntax highlighting, KaTeX math, and Mermaid diagrams.
+- Markdown, syntax highlighting, KaTeX math, and Mermaid diagrams. Diagrams zoom and export to PNG, SVG, or source; images open in a full-screen viewer.
+- Model and reasoning-effort picker in the composer, plus additional API providers in Settings with per-provider enable switches and model discovery from [models.dev](https://models.dev).
+- Optional content safety check (`safety_check`); refused replies keep whatever text was streamed and show a notice with the reason instead of being discarded.
 - Simplified Chinese and English, light and dark themes, mobile layouts, location settings, and chat history import and export.
 
 ## Data and storage
 
 Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
+
+Settings → Account → Model providers lets you add compatible endpoints. Their keys stay in localStorage, and the composer sends a request to the selected provider's own endpoint. Model names, vendor logos, and reasoning-capability metadata come from the public [models.dev](https://models.dev) catalog; that catalog call is the only request this app makes that does not go to your configured API service.
 
 History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all local conversations and attachments. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
 

@@ -1,0 +1,15 @@
+/* 免责声明的两行：行本身不加内边距，padding 统一由外层 caveat 承担 */
+.line {
+  width: 100%;
+}
+
+/* 链接：默认与正文同色，仅下划线；hover 只轻微变深 */
+.link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: var(--dsw-alias-label-secondary);
+  }
+}

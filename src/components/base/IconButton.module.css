@@ -54,3 +54,8 @@
 .primary {
   color: var(--dsw-alias-label-primary);
 }
+
+/* 危险操作图标（如清除 API Key） */
+.danger {
+  color: var(--dsw-alias-state-error-primary);
+}

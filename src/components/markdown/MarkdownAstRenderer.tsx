@@ -45,7 +45,13 @@ const List = memo(function List({ node, loading }: { node: ListNode; loading: bo
 const Table = memo(function Table({ node }: { node: TableNode }) {
   const columnCount = node.children[0]?.children.length
   return (
-    <div className="markdown-table-wrapper">
+    // 官方 _1210dd7.c03cafe9：≥4 列的表格突破正文列宽，横向滚动时占满整个消息区
+    <div
+      className={clsx(
+        'markdown-table-wrapper',
+        columnCount >= 4 && 'markdown-table-wrapper--wide'
+      )}
+    >
       <table>
         {node.children[0] ? (
           <thead>

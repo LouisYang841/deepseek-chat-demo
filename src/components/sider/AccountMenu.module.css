@@ -1,0 +1,70 @@
+/* 底部账户区：与官网一致（bC.li），菜单由官方 Dropdown 以 portal 渲染 */
+.wrap {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 64px;
+  margin-top: auto;
+}
+
+/* 行本体：铺满整行，三个点靠最右 */
+.row {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  margin-block: auto;
+  padding: 6px 2px 6px 6px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+
+  &:hover {
+    background-color: var(--dsw-specific-sidebar-nav-item-hover);
+  }
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  background-color: var(--dsw-alias-bg-skeleton);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.label {
+  flex-shrink: 1;
+  min-width: 0;
+  margin-left: 8px;
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--dsw-alias-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.labelMuted {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.dots {
+  display: flex;
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 8px;
+  color: var(--dsw-alias-label-tertiary);
+}

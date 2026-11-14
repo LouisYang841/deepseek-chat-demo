@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from '@rspack/cli'
-import { rspack, type Configuration } from '@rspack/core'
+import { rspack, type Compiler, type Configuration } from '@rspack/core'
+import sharp from 'sharp'
 
 const dev = process.env.NODE_ENV !== 'production'
 const targets = ['chrome >= 105', 'edge >= 105', 'safari >= 16', 'firefox >= 110']
@@ -13,7 +14,42 @@ const { version } = JSON.parse(
 
 const cssLoader = {
   loader: 'builtin:lightningcss-loader',
-  options: { targets },
+  options: { targets, minify: !dev },
+}
+
+/**
+ * 从 assets 里的 favicon.svg 自动生成 180×180 的 apple-touch-icon.png：
+ * 白底、PNG 格式，构建时输出到 static/icons/，不在源码里存 PNG。
+ */
+class AppleTouchIconPlugin {
+  apply(compiler: Compiler) {
+    compiler.hooks.thisCompilation.tap('AppleTouchIconPlugin', (compilation) => {
+      compilation.hooks.processAssets.tapPromise(
+        {
+          name: 'AppleTouchIconPlugin',
+          stage: rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+        },
+        async () => {
+          const svg = readFileSync(path.resolve(root, 'src/assets/icons/favicon.svg'))
+          // 180×180 画布内缩到 144×144，四周各留 18px 白边
+          const inner = 144
+          const padding = (180 - inner) / 2
+          const logo = await sharp(svg, { density: 600 })
+            .resize(inner, inner, { fit: 'contain', background: '#ffffff' })
+            .flatten({ background: '#ffffff' })
+            .png()
+            .toBuffer()
+          const png = await sharp({
+            create: { width: 180, height: 180, channels: 3, background: '#ffffff' },
+          })
+            .composite([{ input: logo, top: padding, left: padding }])
+            .png()
+            .toBuffer()
+          compilation.emitAsset('static/icons/icon-180.png', new rspack.sources.RawSource(png))
+        }
+      )
+    })
+  }
 }
 
 type ConfigOptions = {
@@ -42,6 +78,7 @@ export const createConfig = ({
     clean: true,
   },
   devtool: dev ? 'cheap-module-source-map' : false,
+  optimization: { minimize: !dev },
   // 开发模式预编译异步模块，保持首次加载代码高亮和公式时的页面状态
   lazyCompilation: false,
   resolve: {
@@ -79,10 +116,19 @@ export const createConfig = ({
       template: './src/index.html',
       scriptLoading: 'defer',
       meta: { 'application-version': version },
+      minify: !dev,
     }),
     new rspack.DefinePlugin({ __API_ORIGIN__: JSON.stringify(apiOrigin) }),
+    new AppleTouchIconPlugin(),
     new rspack.CopyRspackPlugin({
-      patterns: [{ from: path.resolve(root, 'LICENSE'), to: 'LICENSE', toType: 'file' }],
+      patterns: [
+        { from: path.resolve(root, 'LICENSE'), to: 'LICENSE', toType: 'file' },
+        {
+          from: path.resolve(root, 'src/assets/icons/favicon.svg'),
+          to: 'static/icons/favicon.svg',
+          toType: 'file',
+        },
+      ],
     }),
   ],
   performance: { hints: false },

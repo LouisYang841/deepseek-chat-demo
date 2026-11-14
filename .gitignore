@@ -9,3 +9,7 @@ build/
 .env.*
 !.env.example
 tmp/
+# 本地登录态凭据，切勿提交
+cookie.txt
+cookies.txt
+cookies.json

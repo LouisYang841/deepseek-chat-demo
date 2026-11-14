@@ -2,6 +2,7 @@
   display: contents;
 }
 
+/* 官方 .ds-tooltip--s：12px/1.5、padding 4px 8px、radius 10px、bg --dsw-alias-tooltip-bg */
 .tooltip {
   position: fixed;
   z-index: 2000;
@@ -14,12 +15,35 @@
   font-size: 12px;
   line-height: 1.5;
   pointer-events: none;
+  /* 官网浮层动画 ds-fade-in-zoom-in */
+  animation: tooltip-in var(--ds-transition-duration-fast) var(--ds-ease-in);
 
+  /* 深色主题：文字改 label-primary 并加官方阴影（官方 .ds-tooltip 原文） */
   [data-ds-dark-theme] & {
     color: var(--dsw-alias-label-primary);
     box-shadow:
       0 6px 16px 0 rgba(0, 0, 0, 0.08),
       0 3px 6px -4px rgba(0, 0, 0, 0.12),
       0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.tooltip[data-placement='top'] {
+  transform-origin: bottom;
+}
+
+.tooltip[data-placement='bottom'] {
+  transform-origin: top;
+}
+
+/* 官方 ds-fade-in-zoom-in：0.96 → 1 + 淡入 */
+@keyframes tooltip-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }

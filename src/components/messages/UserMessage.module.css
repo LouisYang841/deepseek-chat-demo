@@ -66,6 +66,40 @@
   }
 }
 
+/* 官方「展开消息 / 收起消息」：用户消息超过 192px 时的折叠开关 */
+.collapseButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  margin-right: auto;
+  padding: 0 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: color var(--ds-transition-duration) var(--ds-ease-in-out);
+
+  &:hover {
+    color: var(--dsw-alias-label-primary);
+    background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+    transition: transform var(--ds-transition-duration) var(--ds-ease-in-out);
+  }
+}
+
+.collapseButtonOpen svg {
+  transform: rotate(180deg);
+}
+
 .alwaysShow {
   opacity: 1;
 }

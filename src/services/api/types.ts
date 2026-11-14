@@ -4,7 +4,8 @@
  * 声明 deepseek_web_search / deepseek_read_url 或设置 safety_check.level 为 high 时进入扩展模式。
  */
 
-export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'
+/** 模型 id：内置 'deepseek-flash' / 'deepseek-v4-pro'，自定义提供商可使用任意 id */
+export type ChatModel = string
 
 // ---------- 响应：内容块 ----------
 
@@ -176,9 +177,9 @@ export type CreateMessageRequest = {
   model: ChatModel
   system: string
   messages: MessageParam[]
-  thinking: { type: 'enabled' | 'disabled' }
+  thinking: { type: 'enabled' | 'disabled'; budget_tokens?: number }
   tools: (DeepseekWebSearchTool | DeepseekReadUrlTool)[]
-  safety_check: { level: 'high' }
+  safety_check?: { level: 'high' }
   title?: { enabled: boolean }
 }
 
@@ -186,7 +187,8 @@ export type CreateMessageRequest = {
 
 export type StopReason = 'end_turn' | 'max_tokens' | 'tool_use' | 'refusal'
 
-export type StopDetails = { type: 'refusal'; category: null; explanation: null }
+/** 拒答详情：category 目前恒为 null，explanation 会带图片审核的说明 */
+export type StopDetails = { type: 'refusal'; category: string | null; explanation: string | null }
 
 export type MessageUsage = {
   /** 未命中缓存的输入 Token */

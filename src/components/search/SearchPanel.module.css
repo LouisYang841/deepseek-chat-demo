@@ -1,14 +1,46 @@
+/*
+ * 官方 _519be07 / _233f913：右侧面板始终存在，宽度 0，
+ * 用 flex-basis 过渡展开到 min(50vw - 4rem, 390px)，展开时挤压左侧对话区。
+ */
 .panel {
+  --search-panel-width: min(calc(50vw - 4rem), 390px);
+
+  position: relative;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  flex: 0 0 0;
   box-sizing: border-box;
-  width: calc(50vw - 4rem);
-  max-width: 390px;
+  width: 0;
   height: 100%;
-  border-left: 1px solid var(--dsw-alias-border-l2);
+  overflow: hidden;
+  border-left: 1px solid transparent;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-base);
+  transition: flex-basis var(--ds-transition-duration) var(--ds-ease-out);
+}
+
+.open {
+  flex-basis: var(--search-panel-width);
+  width: var(--search-panel-width);
+  overflow: visible;
+  border-left-color: var(--dsw-alias-border-l2);
+}
+
+/*
+ * 内容固定成展开后的宽度并绝对定位：不参与面板的 min-content 计算，
+ * 面板变宽时条目不被挤压变形，而是随宽度一格格露出来。
+ */
+.inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: var(--search-panel-width);
+  height: 100%;
+  min-height: 0;
 }
 
 .header {
@@ -17,7 +49,7 @@
   flex-shrink: 0;
   box-sizing: border-box;
   height: 60px;
-  padding: 0 14px 0 20px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--dsw-alias-border-l2);
 }
 
@@ -59,8 +91,18 @@
     position: fixed;
     inset: 0;
     z-index: 700;
+    flex: none;
     width: auto;
-    max-width: none;
     border-left: none;
+    transition: none;
+  }
+
+  .open {
+    flex-basis: auto;
+    width: auto;
+  }
+
+  .inner {
+    width: 100%;
   }
 }

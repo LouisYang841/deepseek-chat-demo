@@ -1,0 +1,299 @@
+/* 官方 _13027f7：外层高度 72vh，让搜索条位于视口上方约 14% 处 */
+.wrapper :global(.ds-modal) {
+  display: flex;
+  flex-direction: column;
+  height: 72vh;
+  max-height: calc(100vh - 24px);
+  margin: auto;
+}
+
+/* 面板（官方 _97221f9）：宽 min(660px, 100vw-24px)、20px 圆角、padding 0 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(660px, calc(100vw - 24px));
+  max-width: 660px;
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background-color: var(--dsw-alias-bg-layer-2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 4px 10px rgba(0, 0, 0, 0.02);
+}
+
+/* 有搜索词时面板撑满 72vh（官方 _34e1f8b） */
+.panelExpanded {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 官方 ea61040d：内容列 flex 撑满、圆角裁切 */
+.main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 搜索行：高 60px，左 36px 图标 + 输入框 + 竖分隔 + 关闭按钮 */
+.bar {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  min-height: 60px;
+  padding: 12px 12px 12px 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 28px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--dsw-alias-label-primary);
+
+  &::placeholder {
+    color: var(--dsw-alias-label-tertiary);
+  }
+}
+
+.divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  margin: 0 12px;
+  background-color: var(--dsw-alias-border-l1);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 28px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+/* 结果区：官方 ds-virtual-list 自己滚动 */
+.results {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 官方 bb333cd3：列表左右各留 8px */
+.virtualList {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 0 8px;
+}
+
+.hint {
+  padding: 24px 8px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
+}
+
+/* 官方 _1e224f9：67px 高的搜索结果卡片 */
+.result {
+  --conversation-search-avatar-outline-color: var(--dsw-alias-bg-layer-2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 67px;
+  padding: 10px 12px 10px 10px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    --conversation-search-avatar-outline-color: var(--dsw-alias-interactive-bg-hover-solid);
+    background: var(--dsw-alias-interactive-bg-hover-solid);
+  }
+
+}
+
+/* 官方 _0bd7d0b / d47de25d：40px 会话图标圆 */
+.resultIcon {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.conversationIcon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--dsw-alias-label-tertiary);
+  box-shadow: inset 0 0 0 1px var(--dsw-alias-border-l2);
+}
+
+/* 官方 _3dda4ec：用户消息右下角 20px 默认头像 */
+.userAvatar {
+  position: absolute;
+  top: 22px;
+  left: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--dsw-alias-bg-overlay);
+  box-shadow: 0 0 0 1px var(--conversation-search-avatar-outline-color, var(--dsw-alias-bg-layer-2));
+  color: var(--dsw-alias-label-tertiary);
+  overflow: hidden;
+}
+
+/* 官方 ecd4f991：右侧内容列 */
+.resultBody {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* 官方 b9cb2a3c：标题 + 时间 */
+.resultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.resultTitle {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  font: var(--dsw-font-markdown-table);
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultTime {
+  flex-shrink: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 官方便签行（_312877c）：分支徽标 + 命中片段 */
+.resultSnippetRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 官方 a1e3bb8c：分支徽标 */
+.branchBadge {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+/* 官方 b643f477：命中片段 */
+.resultSnippet {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 空关键词时的底部提示 */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 10px 16px 14px;
+}
+
+.footerHint {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.kbd {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-caption);
+}

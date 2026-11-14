@@ -1,7 +1,5 @@
-import clsx from 'clsx'
-import { useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
-import { useAnchoredPosition, useDismiss } from './anchored.js'
+import type { ReactNode } from 'react'
+import { Dropdown, type DropdownOption } from './Dropdown.js'
 import styles from './Menu.module.css'
 
 export type MenuOption = {
@@ -12,54 +10,52 @@ export type MenuOption = {
   onSelect: () => void
 }
 
-/** 点击触发，向下展开；点外部或 Esc 关闭 */
+/**
+ * 会话项「更多」菜单：内部使用官方 Dropdown / DropdownMenu，
+ * 因而自动获得官方 0.1s 缩放淡入、点击外部关闭、↑/↓/Enter/Esc 键盘操作。
+ */
 export const Menu = ({
   options,
+  onOpenChange,
   children,
 }: {
   options: MenuOption[]
+  onOpenChange?: (open: boolean) => void
   children: (props: { open: boolean; toggle: () => void }) => ReactNode
 }) => {
-  const [open, setOpen] = useState(false)
-  const close = () => setOpen(false)
-  // 左侧对齐并再左移 5px，让菜单文字与触发元素图标对齐
-  const { anchorRef, floatingRef, position } = useAnchoredPosition<HTMLSpanElement, HTMLDivElement>(
-    open,
-    { align: 'start', alignOffset: -5, offset: 4 }
-  )
-  useDismiss(open, [anchorRef, floatingRef], close)
+  const dropdownOptions: DropdownOption[] = options.map((option) => ({
+    key: option.key,
+    label: option.label,
+    icon: option.icon,
+    danger: option.danger,
+  }))
 
   return (
-    <>
-      <span ref={anchorRef} className={styles.anchor}>
-        {children({ open, toggle: () => setOpen((value) => !value) })}
-      </span>
-      {open
-        ? createPortal(
-            <div
-              ref={floatingRef}
-              className={styles.menu}
-              style={position ?? undefined}
-              role="menu"
-            >
-              {options.map((option) => (
-                <div
-                  key={option.key}
-                  role="menuitem"
-                  className={clsx(styles.option, option.danger && styles.danger)}
-                  onClick={() => {
-                    setOpen(false)
-                    option.onSelect()
-                  }}
-                >
-                  <span className={styles.icon}>{option.icon}</span>
-                  {option.label}
-                </div>
-              ))}
-            </div>,
-            document.body
-          )
-        : null}
-    </>
+    <Dropdown
+      options={dropdownOptions}
+      trigger="click"
+      placement="bottom-start"
+      offsetOptions={{ mainAxis: 4, crossAxis: -5 }}
+      onOpenChange={onOpenChange}
+      onSelect={(key) => {
+        options.find((option) => option.key === key)?.onSelect()
+      }}
+    >
+      {({ domRef, domProps, isOpen }) => (
+        <span
+          ref={domRef as React.RefObject<HTMLSpanElement>}
+          className={styles.anchor}
+          {...domProps}
+          onClick={(event) => {
+            // 会话项本身是 <a>，点「…」不能同时触发切换会话
+            event.preventDefault()
+            event.stopPropagation()
+            ;(domProps.onClick as ((e: React.MouseEvent) => void) | undefined)?.(event)
+          }}
+        >
+          {children({ open: isOpen, toggle: () => {} })}
+        </span>
+      )}
+    </Dropdown>
   )
 }

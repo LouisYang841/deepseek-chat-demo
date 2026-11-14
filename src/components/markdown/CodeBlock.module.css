@@ -6,12 +6,19 @@
   padding: 6px;
 }
 
+/* 官方开源仓库原值：语言名用等宽 12px/18px */
 .name {
   margin-left: 8px;
   color: var(--dsw-alias-label-primary);
   font-family: var(--ds-font-family-code);
   font-size: 12px;
   line-height: 18px;
+}
+
+/* 官网右侧按钮组 .efa13877：display:flex + align-items:center，无间距 */
+.actions {
+  display: flex;
+  align-items: center;
 }
 
 .button {
@@ -21,7 +28,8 @@
   height: 28px;
   padding: 0 10px;
   border: none;
-  border-radius: 8px;
+  /* 官网 ds-button--capsule */
+  border-radius: 4096px;
   background: transparent;
   color: var(--dsw-alias-label-secondary);
   font: inherit;

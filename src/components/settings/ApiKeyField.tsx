@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { IconEditOutline16 } from '../base/icons.js'
-import { useSettings } from '../../services/settings.js'
+import { IconLogout16 } from '../sider/AccountIcons.js'
+import { setApiKey, useSettings } from '../../services/settings.js'
+import { showToast } from '../base/toastState.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { IconButton } from '../base/IconButton.js'
 import { useApiKeyForm } from './useApiKeyForm.js'
@@ -30,19 +32,40 @@ export const ApiKeyField = ({ editor }: { editor: ApiKeyEditor }) => {
         {apiKey && !editing ? (
           <div className={styles.apiKeySaved}>
             <span className={styles.apiKeyMask}>{'*'.repeat(apiKey.length)}</span>
-            <IconButton
-              tone="primary"
-              icon={<IconEditOutline16 />}
-              tooltip={t('apiKeyEdit')}
-              onClick={() => setEditing(true)}
-            />
+            {/* 退出登录已移除，清除 Key 的入口放在编辑按钮左侧 */}
+            <div className={styles.apiKeyActions}>
+              <IconButton
+                tone="danger"
+                icon={<IconLogout16 />}
+                tooltip={t('apiKeyClear')}
+                onClick={() => {
+                  setApiKey(null)
+                  setEditing(false)
+                  showToast({ key: 'accountSignedOut' })
+                }}
+              />
+              <IconButton
+                tone="primary"
+                icon={<IconEditOutline16 />}
+                tooltip={t('apiKeyEdit')}
+                onClick={() => {
+                  // 进入编辑时回填当前 Key，输入框显示明文而不是空密码框
+                  form.setValue(apiKey ?? '')
+                  setEditing(true)
+                }}
+              />
+            </div>
           </div>
         ) : (
           <div className={styles.apiKeyInput}>
             <input
-              type="password"
+              type={editing && apiKey ? 'text' : 'password'}
               placeholder={t('apiKeyPlaceholder')}
               autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
               spellCheck={false}
               // 移动端打开设置时不弹键盘，点编辑后才聚焦
               autoFocus={!isMobile || editing}

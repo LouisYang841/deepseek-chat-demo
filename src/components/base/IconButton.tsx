@@ -18,7 +18,7 @@ export const IconButton = ({
 }: {
   icon: ReactNode
   size?: 'xs' | 'm' | 'xl'
-  tone?: 'tertiary' | 'primary'
+  tone?: 'tertiary' | 'primary' | 'danger'
   tooltip?: string
   tooltipPlacement?: TooltipPlacement
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'>) => {

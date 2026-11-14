@@ -14,7 +14,15 @@ export const CitationLink = ({ source }: { source: Source }) => {
     window.open(source.url, '_blank', 'noopener,noreferrer')
   }
   const renderTrigger: HoverCardTrigger = ({ domRef, domProps }) => (
-    <span ref={domRef} className="ds-markdown-cite" {...domProps} role="link" onClick={open}>
+    <span
+      ref={domRef}
+      className="ds-markdown-cite"
+      // 官方 od：两位数引用最小宽度 20，单位数 14
+      style={{ minWidth: String(source.index).length > 1 ? 20 : 14 }}
+      {...domProps}
+      role="link"
+      onClick={open}
+    >
       {source.index}
     </span>
   )

@@ -8,7 +8,9 @@ import {
 import { selectMessageVersion } from '../../services/chat/store.js'
 import type { Session } from '../../services/chat/types.js'
 import { closeSearchPanel } from '../search/searchPanelState.js'
+import { ScrollGutters } from '../base/ScrollGutters.js'
 import { AssistantMessage } from './AssistantMessage.js'
+import { ScrollNav, type ScrollNavItem } from './ScrollNav.js'
 import { ScrollToBottomContext } from './scrollContext.js'
 import { UserMessage } from './UserMessage.js'
 import type { Message } from '../../services/chat/types.js'
@@ -49,6 +51,7 @@ export const MessageList = ({
   const scrollTopRef = useRef(0)
   const restoreScrollRef = useRef<{ messageId: string; top: number } | null>(null)
   const messages = getVisibleMessages(session)
+  const [activeNavId, setActiveNavId] = useState<string | null>(null)
   const [previousVersions, setPreviousVersions] = useState(() =>
     buildMessageVersions(session, new Map())
   )
@@ -60,6 +63,63 @@ export const MessageList = ({
     setPreviousVersions(versions)
   }
   const lastMessageId = messages.at(-1)?.id
+  const navItems = useMemo<ScrollNavItem[]>(
+    () =>
+      messages
+        .filter((message) => message.role === 'user')
+        .map((message) => {
+          const version = versions.get(message.id)
+          return {
+            id: message.id,
+            title: message.content.split('\n')[0].trim() || '…',
+            branchAt: version ? version.index + 1 : 1,
+            branches: version ? version.ids.length : 1,
+          }
+        }),
+    [messages, versions]
+  )
+
+  // 右侧导航高亮：以视口上方 80px 为基准，找最后一条越过的用户消息
+  useEffect(() => {
+    const scroll = scrollRef.current
+    if (!scroll || navItems.length < 2) {
+      return
+    }
+    const update = () => {
+      let current = navItems[0]?.id ?? null
+      const base = scroll.getBoundingClientRect().top
+      for (const item of navItems) {
+        const node = scroll.querySelector<HTMLElement>(
+          `[data-message-id="${CSS.escape(item.id)}"]`
+        )
+        if (node && node.getBoundingClientRect().top - base <= 80) {
+          current = item.id
+        }
+      }
+      setActiveNavId(current)
+    }
+    update()
+    scroll.addEventListener('scroll', update, { passive: true })
+    return () => scroll.removeEventListener('scroll', update)
+  }, [navItems, isMobile, session.id])
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const scroll = scrollRef.current
+    if (!scroll) {
+      return
+    }
+    const target = scroll.querySelector<HTMLElement>(
+      `[data-message-id="${CSS.escape(messageId)}"]`
+    )
+    if (!target) {
+      return
+    }
+    stickyRef.current = false
+    const delta = target.getBoundingClientRect().top - scroll.getBoundingClientRect().top
+    scroll.scrollTo({ top: scroll.scrollTop + delta - 12, behavior: 'smooth' })
+    setActiveNavId(messageId)
+  }, [])
+
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
     if (el && stickyRef.current) {
@@ -139,11 +199,35 @@ export const MessageList = ({
     return () => el.removeEventListener('scroll', onScroll)
   }, [isMobile, scrollToBottom])
 
+  // 宽表格（≥4 列）要突破正文列宽：把滚动区宽度写进 CSS 变量，供 .column 里的表格使用
+  const [scrollWidth, setScrollWidth] = useState(0)
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) {
+      return
+    }
+    const update = () => setScrollWidth(el.clientWidth)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [isMobile])
+
   const lastIndex = messages.length - 1
   const uploadRetryId = getUploadRetryId(messages, streaming)
   return (
     <ScrollToBottomContext.Provider value={scrollToBottom}>
-      <div ref={isMobile ? undefined : scrollRef} className={styles.container}>
+      <div className="ds-scroll-host">
+        <div
+          ref={isMobile ? undefined : scrollRef}
+          className={styles.container}
+          data-ds-scroll-area
+          style={
+            scrollWidth
+              ? ({ '--message-list-scroll-width': `${scrollWidth}px` } as React.CSSProperties)
+              : undefined
+          }
+        >
         <div ref={isMobile ? scrollRef : undefined} className={styles.scroll}>
           <div ref={contentRef} className={styles.column}>
             {messages.map((message, index) =>
@@ -175,7 +259,10 @@ export const MessageList = ({
           </div>
         </div>
         {footer}
+        </div>
+        {isMobile ? null : <ScrollGutters targetRef={scrollRef} />}
       </div>
+      <ScrollNav items={navItems} activeId={activeNavId} onSelect={scrollToMessage} />
     </ScrollToBottomContext.Provider>
   )
 }

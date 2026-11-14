@@ -346,7 +346,11 @@ export const buildReplyView = (reply: AssistantMessage, streaming: boolean): Rep
   }
 }
 
-/** 思考总用时（秒）：各思考块用时之和，至少 1 秒；有块缺少用时时返回 null。 */
+/**
+ * 思考总用时（秒）：各思考块用时之和，至少 1 秒。
+ * 官方 `Math.max(Math.round(getThinkFragments(s).reduce((acc, f) => (f.elapsedSecs || 0) + acc, 0)), 1)`：
+ * 缺少用时的块按 0 计，所以永远有值（不会出现「无法计算」的情况）。
+ */
 export const getTotalThinkingSeconds = (steps: Step[], now: number) => {
   let total = 0
   for (const step of steps) {
@@ -357,7 +361,7 @@ export const getTotalThinkingSeconds = (steps: Step[], now: number) => {
           continue
         }
         if (block.startedAt === undefined) {
-          return null
+          continue
         }
         total += (block.endedAt ?? now) - block.startedAt
       }
@@ -374,10 +378,8 @@ export const getAreaTitle = (
   hasResponse = view.answer !== null
 ) => {
   if (hasResponse) {
+    // 官方：Math.max(Math.round(sum(elapsedSecs || 0)), 1)，1 秒用单数键，其余用复数键
     const count = getTotalThinkingSeconds(view.steps, now)
-    if (count === null) {
-      return translate('thinkingSwitch')
-    }
     return translate(count === 1 ? 'messageThinkDuration' : 'messageThinkDurationPlural', { count })
   }
   if (!streaming) {

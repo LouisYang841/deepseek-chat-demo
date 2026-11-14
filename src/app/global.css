@@ -24,8 +24,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --scroll-color: rgba(0, 0, 0, 0.08);
-  --scroll-color-hover: rgba(0, 0, 0, 0.15);
+  /* 滚动条颜色改用官网 alias token（中性 200 / 悬停 300） */
+  --scroll-color: var(--dsw-alias-scrollbar-bg-l1);
+  --scroll-color-hover: var(--dsw-alias-scrollbar-hover-l1);
 }
 
 body.dark {
@@ -33,8 +34,8 @@ body.dark {
 }
 
 body[data-ds-dark-theme] {
-  --scroll-color: rgba(255, 255, 255, 0.15);
-  --scroll-color-hover: rgba(255, 255, 255, 0.24);
+  --scroll-color: var(--dsw-alias-scrollbar-bg-l1);
+  --scroll-color-hover: var(--dsw-alias-scrollbar-hover-l1);
 }
 
 body.change-theme *,

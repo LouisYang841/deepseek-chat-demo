@@ -120,7 +120,7 @@
 .locationSelectors {
   display: flex;
   flex-wrap: nowrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-end;
   gap: 16px;
   min-width: 0;
@@ -131,6 +131,16 @@
   flex-shrink: 1;
   min-width: 0;
   text-align: start;
+}
+
+/* 清除位置：放在两个下拉框左侧，与下拉框垂直居中对齐 */
+.locationSelectors > .locationClear {
+  flex-shrink: 0;
+  align-self: center;
+  width: 28px;
+  min-width: 28px;
+  margin-right: -8px;
+  text-align: center;
 }
 
 .provinceSelect {
@@ -228,9 +238,17 @@
   background-color: var(--dsw-specific-login-input);
 }
 
+/* 掩码右侧的按钮组：清除 Key 紧挨编辑按钮左侧 */
+.apiKeyActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
 .apiKeyMask {
-  min-width: 0;
-  overflow: hidden;
+  min-width: 0;  overflow: hidden;
   white-space: nowrap;
   color: var(--dsw-alias-label-caption);
   user-select: none;
@@ -438,5 +456,90 @@
     white-space: normal;
     overflow-wrap: anywhere;
     max-width: 100%;
+  }
+}
+
+/* 段落标题：账号管理里的「模型提供商」等 */
+.sectionTitle {
+  padding: 12px 0 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+/* provider cards: account section */
+.providerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 12px;
+}
+
+.providerCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+}
+
+.providerHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.providerName {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 名称在头部这一行里占满剩余宽度（.providerInput 默认不伸缩，见下） */
+.providerHead .providerName {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.providerInput {
+  /* 卡片是纵向 flex：这里绝不能 flex:1，否则输入框会被压缩成不同高度 */
+  flex: 0 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+
+  &:focus {
+    border-color: var(--dsw-alias-brand-primary);
+  }
+}
+
+.providerAdd {
+  align-self: flex-start;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 18px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
   }
 }

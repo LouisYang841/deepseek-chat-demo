@@ -1,8 +1,8 @@
 import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
-import { memo, useLayoutEffect, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
-import { IconEditOutline16 } from '../base/icons.js'
+import { IconChevronDownOutline14, IconEditOutline16 } from '../base/icons.js'
 import { editMessage, retryUpload } from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import type { UserMessage as UserMessageType } from '../../services/chat/types.js'
@@ -17,6 +17,9 @@ import {
 import { MessageFile } from './MessageFile.js'
 import { CopyButton } from './CopyButton.js'
 import styles from './UserMessage.module.css'
+
+/** 官方折叠阈值：用户消息高度超过 192px 时折叠 */
+const COLLAPSED_HEIGHT = 192
 
 export const UserMessage = memo(function UserMessage({
   sessionId,
@@ -44,6 +47,22 @@ export const UserMessage = memo(function UserMessage({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isMobile = useIsMobile()
   const canSend = !busy && (draft.trim() !== '' || message.files.length > 0)
+  // 官方 .ds-collapsible-text：用户消息超过 192px 折叠，并给出「展开消息 / 收起消息」
+  const bubbleRef = useRef<HTMLDivElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [clamped, setClamped] = useState(false)
+
+  useEffect(() => {
+    const bubble = bubbleRef.current
+    if (!bubble) {
+      return
+    }
+    const measure = () => setClamped(bubble.scrollHeight > COLLAPSED_HEIGHT + 1)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(bubble)
+    return () => observer.disconnect()
+  }, [message.content])
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
@@ -61,7 +80,10 @@ export const UserMessage = memo(function UserMessage({
   }
 
   return (
-    <div className={clsx(styles.container, isFirst && styles.isFirst)}>
+    <div
+      className={clsx(styles.container, isFirst && styles.isFirst)}
+      data-message-id={message.id}
+    >
       {message.files.length > 0 ? (
         <div
           className={clsx(
@@ -112,8 +134,34 @@ export const UserMessage = memo(function UserMessage({
         </div>
       ) : (
         <>
-          {message.content ? <div className={styles.bubble}>{message.content}</div> : null}
+          {message.content ? (
+            <div
+              ref={bubbleRef}
+              className={styles.bubble}
+              style={
+                clamped
+                  ? {
+                      maxHeight: expanded ? undefined : COLLAPSED_HEIGHT,
+                      overflow: 'hidden',
+                      transition: 'max-height var(--ds-transition-duration) var(--ds-ease-in-out)',
+                    }
+                  : undefined
+              }
+            >
+              {message.content}
+            </div>
+          ) : null}
           <div className={styles.bottom}>
+            {clamped ? (
+              <button
+                type="button"
+                className={clsx(styles.collapseButton, expanded && styles.collapseButtonOpen)}
+                onClick={() => setExpanded((value) => !value)}
+              >
+                <IconChevronDownOutline14 />
+                {t(expanded ? 'collapseUserMessage' : 'expandUserMessage')}
+              </button>
+            ) : null}
             <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
               {message.content ? <CopyButton text={message.content} /> : null}
               <IconButton

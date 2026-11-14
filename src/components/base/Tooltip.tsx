@@ -58,6 +58,7 @@ export const Tooltip = ({
               ref={floatingRef}
               role="tooltip"
               className={styles.tooltip}
+              data-placement={placement}
               style={position ?? { top: 0, left: 0, visibility: 'hidden' }}
             >
               {content}

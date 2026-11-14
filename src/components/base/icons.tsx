@@ -104,6 +104,33 @@ export const IconDownloadOutline16 = () => (
   </svg>
 )
 
+export const IconZoomInOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="7.1" cy="7.1" r="4.35" stroke="currentColor" strokeWidth="1.2" />
+    <path d="M10.45 10.45L13.3 13.3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <path d="M7.1 5.15V9.05M5.15 7.1H9.05" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+  </svg>
+)
+
+export const IconZoomOutOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="7.1" cy="7.1" r="4.35" stroke="currentColor" strokeWidth="1.2" />
+    <path d="M10.45 10.45L13.3 13.3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    <path d="M5.15 7.1H9.05" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+  </svg>
+)
+
+export const IconFullscreenOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M5.9 2.9H3.3C3.079 2.9 2.9 3.079 2.9 3.3V5.9M10.1 2.9H12.7C12.921 2.9 13.1 3.079 13.1 3.3V5.9M5.9 13.1H3.3C3.079 13.1 2.9 12.921 2.9 12.7V10.1M10.1 13.1H12.7C12.921 13.1 13.1 12.921 13.1 12.7V10.1"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+    />
+  </svg>
+)
+
 export const IconEditOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path
@@ -249,6 +276,19 @@ export const IconSettingsOutline16 = () => (
     />
     <path
       d="M9.13764 7.99999C9.13764 7.3715 8.62855 6.8624 8.00005 6.8624C7.37155 6.8624 6.86246 7.3715 6.86246 7.99999C6.86246 8.62849 7.37155 9.13759 8.00005 9.13759C8.62855 9.13759 9.13764 8.62849 9.13764 7.99999ZM10.4834 7.99999C10.4834 9.37126 9.37132 10.4833 8.00005 10.4833C6.62878 10.4833 5.51674 9.37126 5.51674 7.99999C5.51674 6.62873 6.62878 5.51669 8.00005 5.51669C9.37132 5.51669 10.4834 6.62873 10.4834 7.99999Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
+export const IconUserOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M11.0307 5.46369C11.0305 3.78995 9.6734 2.43357 7.99961 2.43357C6.32601 2.43379 4.96972 3.79009 4.96949 5.46369C4.96949 7.13748 6.32587 8.49455 7.99961 8.49477C9.67354 8.49477 11.0307 7.13762 11.0307 5.46369ZM12.3163 5.46369C12.3163 7.84777 10.3837 9.78042 7.99961 9.78042C5.61572 9.7802 3.68288 7.84763 3.68288 5.46369C3.6831 3.07993 5.61586 1.14718 7.99961 1.14695C10.3836 1.14695 12.3161 3.0798 12.3163 5.46369Z"
+      fill="currentColor"
+    />
+    <path
+      d="M8.00002 10.3316C11.7343 10.3316 14.1864 11.8997 15.0387 14.4445L14.4292 14.6483L13.8197 14.8531C13.1955 12.9893 11.3673 11.6182 8.00002 11.6182C4.63277 11.6182 2.80455 12.9893 2.18031 14.8531L1.5708 14.6483L0.961304 14.4445C1.81368 11.8997 4.26579 10.3316 8.00002 10.3316Z"
       fill="currentColor"
     />
   </svg>

@@ -4,6 +4,8 @@
 
 基于 DeepSeek API 的静态聊天示例。无需应用后端，浏览器直接请求配置的 API 服务。
 
+本仓库是 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 的非官方衍生版本，用于界面研究并做了扩展，与 DeepSeek 官方无关。
+
 点击 [在线体验](https://deepseek-ai.github.io/chat-demo/) 即可使用，也可以前往 [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases) 下载压缩包，解压后双击 `index.html` 在本地使用，无需安装或构建。首次使用时，请在设置中填写 API Key。
 
 ## 运行
@@ -32,12 +34,16 @@ pnpm build
 - 多会话、自动标题、重命名与删除；编辑提问、重新生成和切换消息分支。
 - 流式回答、深度思考、智能搜索、链接阅读与来源引用；支持停止和符合条件的继续生成。
 - 附件上传、粘贴与拖拽，语音输入和回复朗读；移动端录音时输入框首行显示实时频谱。
-- Markdown、代码高亮、KaTeX 公式和 Mermaid 图表。
+- Markdown、代码高亮、KaTeX 公式和 Mermaid 图表；图表可缩放并导出 PNG / SVG / 源码，图片支持全屏查看。
+- 输入框内的模型与推理等级选择器；设置中可添加其他兼容 API 提供商，支持逐个启用，并从 [models.dev](https://models.dev) 获取模型信息。
+- 可选的内容安全校验（`safety_check`）；遇到拒答时保留已下发的正文，并附上拒答提示与原因，而不是清空回答。
 - 简体中文与英文、浅色与深色主题、移动端布局、位置设置、历史导入导出。
 
 ## 数据
 
 API Key 和设置保存在浏览器 localStorage，会话及附件原件保存在 IndexedDB，本地数据按浏览器用户配置和站点源（origin）隔离。发送对话、上传附件和使用语音功能时，相应内容会提交给配置的 API 服务。
+
+设置 → 账号管理 → 模型提供商可以添加其他兼容接口，其 Key 同样只存于 localStorage，选中后请求直接发到该提供商自己的地址。模型名称、原厂 logo 与推理能力等元信息来自公开的 [models.dev](https://models.dev) 目录，这也是本应用除你配置的 API 服务之外唯一的网络请求。
 
 设置中的历史导入导出使用 ZIP 格式。导入会在确认并校验成功后替换全部本地会话和附件；导出包含会话与本地可用的图片原件，不包含 API Key、设置或非图片附件原件。格式与保留范围见[历史导入导出](src/services/chat/history/README.md)。
 

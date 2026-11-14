@@ -1,0 +1,161 @@
+/* 触发按钮：无边框、无 hover 背景，只留文字与倒箭头 */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  max-width: 280px;
+  padding: 0 4px 0 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--dsw-alias-label-tertiary);
+  }
+}
+
+.buttonText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 推理等级文本与倒箭头同色 */
+.effort {
+  flex-shrink: 0;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.logo {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+/* 浮层：背景/阴影/圆角/动画沿用 .ds-dropdown-menu，这里只补宽度和内边距 */
+.panel {
+  width: 244px;
+  padding: 4px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background-color: var(--dsw-alias-bg-layer-1);
+
+  svg {
+    flex-shrink: 0;
+    color: var(--dsw-alias-label-tertiary);
+  }
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+
+  &::placeholder {
+    color: var(--dsw-alias-label-caption);
+  }
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cellLabel {
+  flex-shrink: 0;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.cellValue {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: right;
+  color: var(--dsw-alias-label-primary);
+}
+
+.searchClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.optionLabel {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.groupTitle {
+  padding: 4px 10px 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.list {
+  max-height: 216px;
+  overflow-y: auto;
+}
+
+.empty {
+  padding: 8px 10px;
+  color: var(--dsw-alias-label-caption);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.divider {
+  height: 1px;
+  margin: 4px 0;
+  background-color: var(--dsw-alias-border-l2);
+}
+
+.sectionTitle {
+  padding: 4px 10px 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}

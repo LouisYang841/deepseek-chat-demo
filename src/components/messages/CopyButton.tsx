@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { IconCheckOutline16, IconCopyOutline16 } from '../base/icons.js'
+import { CrossFade } from '../base/Transition.js'
 import { IconButton } from '../base/IconButton.js'
 import { showToast } from '../base/toastState.js'
 import { copyText } from '../../utils/clipboard.js'
@@ -14,7 +15,11 @@ export const CopyButton = ({ text }: { text: string }) => {
 
   return (
     <IconButton
-      icon={copied ? <IconCheckOutline16 /> : <IconCopyOutline16 />}
+      icon={
+        <CrossFade nodeKey={copied ? 1 : 0}>
+          {copied ? <IconCheckOutline16 /> : <IconCopyOutline16 />}
+        </CrossFade>
+      }
       tooltip={t('copy')}
       tooltipPlacement="bottom"
       onClick={async () => {

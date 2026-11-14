@@ -6,6 +6,23 @@
   background-color: var(--dsw-alias-bg-base);
 }
 
+/* 侧栏折叠：官方 dc04ec1d / a2f3d50e —— 0.3s transform + 宽度过渡 */
+.siderSlot {
+  display: flex;
+  flex-shrink: 0;
+  width: 261px;
+  overflow: hidden;
+  transition:
+    margin-left var(--ds-transition-duration-slow) var(--ds-ease-in-out),
+    opacity var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+.siderSlotCollapsed {
+  margin-left: -261px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .main {
   position: relative;
   display: flex;

@@ -4,7 +4,8 @@ import { ApiError, streamMessage } from '../api/client.js'
 import type { ChatModel, CreateMessageRequest } from '../api/types.js'
 import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
 import { cancelUpload, describeUploadError, uploadAttachment, useUploads } from '../attachments.js'
-import { useSettings } from '../settings.js'
+import { THINKING_EFFORT_BUDGET, useSettings } from '../settings.js'
+import { useProviders } from '../providers.js'
 import { appendBranch, getVisibleMessages, normalizeSession, selectVersion } from './branches.js'
 import * as db from './db.js'
 import {
@@ -32,14 +33,32 @@ import {
   type UserMessage,
 } from './types.js'
 
-/** deepseek-flash 同时支持深度思考与图片输入 */
+/** 默认模型：deepseek-flash 同时支持深度思考与图片输入；可在输入框左侧切换 */
 const MODEL: ChatModel = 'deepseek-flash'
 /** 所有生成请求统一携带的助手身份说明 */
 const SYSTEM_PROMPT = '该助手为DeepSeek，由深度求索公司创造。'
 /** 保留最近打开的详情；当前会话、生成中及尚未成功保存的会话不淘汰。 */
 const SESSION_CACHE_LIMIT = 5
-/** 安全审核固定开启，所有请求都走扩展模式 */
+/** 安全审核默认开启（可在设置里关掉），开启时所有请求都走扩展模式 */
 const SAFETY_CHECK = { level: 'high' } as const
+/** 思考强度换算成请求里的 budget_tokens；standard 交给服务端默认值 */
+const thinkingBudget = (): { budget_tokens?: number } => {
+  const budget = THINKING_EFFORT_BUDGET[useSettings.getState().thinkingEffort]
+  return budget === null ? {} : { budget_tokens: budget }
+}
+
+/**
+ * 把当前的提供商选择解析成请求目标：内置 DeepSeek 走官方地址与 API Key，
+ * 自定义提供商走它自己的地址和 Key（没填地址时回落到内置）。
+ */
+const resolveRequestTarget = (): { apiKey: string; baseUrl?: string } => {
+  const { providerId, apiKey } = useSettings.getState()
+  const custom = useProviders.getState().providers.find((provider) => provider.id === providerId)
+  if (custom && custom.baseUrl.trim()) {
+    return { apiKey: custom.apiKey, baseUrl: custom.baseUrl.trim() }
+  }
+  return { apiKey: apiKey ?? '' }
+}
 /** 服务端判定 file_id 失效后，重新补传并重发的最多次数（不含首次请求） */
 const FILE_RETRY_LIMIT = 2
 /** 退避基数，第 n 次重试等待 2^n 倍；连续失败达到上限就放弃，把原始报错展示出来 */
@@ -260,7 +279,7 @@ const createReply = (): AssistantMessage => {
     id: createId(),
     role: 'assistant',
     createdAt: Date.now(),
-    model: MODEL,
+    model: useSettings.getState().model,
     thinking,
     search,
     prefix: true,
@@ -474,6 +493,32 @@ export const renameSession = (id: string, title: string) => {
       ),
     }))
     void db.renameSession(id, title).catch(db.reportStorageError('rename session'))
+  }
+}
+
+/**
+ * 批量置顶 / 取消置顶。列表与本地缓存同时更新，再落库；
+ * 置顶只影响排序与分组，不改变会话内容。
+ */
+export const setSessionsPinned = async (ids: string[], pinned: boolean): Promise<void> => {
+  if (ids.length === 0) {
+    return
+  }
+  const idSet = new Set(ids)
+  set((state) => ({
+    sessions: sortSessions(
+      state.sessions.map((session) => (idSet.has(session.id) ? { ...session, pinned } : session))
+    ),
+    sessionCache: Object.fromEntries(
+      Object.entries(state.sessionCache).map(([id, session]) =>
+        idSet.has(id) ? [id, { ...session, pinned }] : [id, session]
+      )
+    ),
+  }))
+  try {
+    await db.setSessionsPinned(ids, pinned)
+  } catch (error) {
+    db.reportStorageError('pin sessions')(error)
   }
 }
 
@@ -996,18 +1041,24 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           initial.thinking ?? false,
           latestReminder
         )
+        const target = resolveRequestTarget()
         const events = streamMessage(
-          useSettings.getState().apiKey ?? '',
+          target.apiKey,
           {
             model: initial.model ?? MODEL,
             system: SYSTEM_PROMPT,
             messages,
-            thinking: { type: initial.thinking ? 'enabled' : 'disabled' },
-            safety_check: SAFETY_CHECK,
+            thinking: {
+              type: initial.thinking ? 'enabled' : 'disabled',
+              ...(initial.thinking ? thinkingBudget() : {}),
+            },
+            // 设置里关掉内容安全校验时不传该参数
+            ...(useSettings.getState().safetyCheck ? { safety_check: SAFETY_CHECK } : {}),
             tools: serverTools(initial.search ?? false),
             ...(titleRequests.has(controller) ? { title: { enabled: true } } : {}),
           },
-          controller.signal
+          controller.signal,
+          target.baseUrl
         )
         const blockIndexes = new Map<number, number>()
         for await (const event of events) {

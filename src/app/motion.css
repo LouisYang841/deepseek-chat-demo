@@ -1,0 +1,435 @@
+/*
+ * 官方动效基础设施（从 chat.deepseek.com 的 chat-main.css 静态搬运）。
+ * 仅保留本项目实际用到的 ds-* 过渡类：
+ *   - ds-fade-in-*                遮罩淡入淡出（react-transition-group）
+ *   - ds-fade-in-zoom-in-*        浮层 / 弹窗面板 0.96 → 1 缩放淡入
+ *   - ds-fade-in-zoom-in-expand-* 高度展开（官方 TransitionExpand）
+ *   - ds-floating-*               浮层 portal 容器
+ *   - ds-dropdown-menu            下拉菜单（官方菜单样式）
+ *   - ds-modal-*                  弹窗遮罩与居中容器
+ */
+
+body {
+  --ds-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ds-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ds-transition-duration-fast: 0.1s;
+}
+
+/* Lottie 开关图标：固定 16×16，颜色跟随 currentColor（官方同样映射 path 的 fill/stroke） */
+.ds-lottie-toggle-icon {
+  display: flex;
+  width: 14px;
+  height: 14px;
+}
+.ds-lottie-toggle-icon > div {
+  display: block;
+  width: 14px !important;
+  height: 14px !important;
+}
+.ds-lottie-toggle-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ds-lottie-toggle-icon svg path[fill] {
+  fill: currentColor;
+}
+.ds-lottie-toggle-icon svg path[stroke] {
+  stroke: currentColor;
+}
+
+/* ---------- fade ---------- */
+.ds-fade-in-enter {
+  opacity: 0;
+}
+.ds-fade-in-active {
+  opacity: 1;
+  transition: opacity var(--ds-ease-in) var(--ds-transition-duration-fast);
+}
+.ds-fade-in-exit {
+  opacity: 1;
+}
+.ds-fade-in-exit-active {
+  opacity: 0;
+  transition: opacity var(--ds-ease-out) var(--ds-transition-duration-fast);
+}
+
+/* ---------- cross fade（图标切换） ---------- */
+.ds-cross-fade {
+  position: relative;
+  display: inline-flex;
+}
+.ds-cross-fade__item {
+  display: inline-flex;
+}
+.ds-cross-fade-enter {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.ds-cross-fade-enter-active {
+  z-index: 1;
+  opacity: 1;
+  transition:
+    opacity var(--ds-transition-duration-fast) var(--ds-ease-in-out),
+    transform var(--ds-transition-duration-fast) var(--ds-ease-in-out);
+  transform: scale(1);
+}
+.ds-cross-fade-exit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 1;
+  transform: scale(1);
+}
+.ds-cross-fade-exit-active {
+  z-index: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition:
+    opacity var(--ds-transition-duration-fast) var(--ds-ease-in-out),
+    transform var(--ds-transition-duration-fast) var(--ds-ease-in-out);
+  transform: scale(0.8);
+}
+
+/* ---------- fade + zoom (浮层) ---------- */
+.ds-fade-in-zoom-in-enter {
+  opacity: 0;
+  transform: scale(0.96);
+}
+.ds-fade-in-zoom-in-active {
+  opacity: 1;
+  transition:
+    opacity var(--ds-ease-in) var(--ds-transition-duration-fast),
+    transform var(--ds-ease-in) var(--ds-transition-duration-fast);
+  transform: scale(1);
+}
+.ds-fade-in-zoom-in-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+.ds-fade-in-zoom-in-exit-active {
+  opacity: 0;
+  transition:
+    opacity var(--ds-ease-out) var(--ds-transition-duration-fast),
+    transform var(--ds-ease-out) var(--ds-transition-duration-fast);
+  transform: scale(0.96);
+}
+
+/* 官方按 floating-ui 的最终 placement 设置 transform-origin */
+[data-transform-origin='bottom'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='bottom'] .ds-fade-in-zoom-in-exit {
+  transform-origin: bottom;
+}
+[data-transform-origin='bottom left'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='bottom left'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 0 100%;
+}
+[data-transform-origin='bottom right'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='bottom right'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 100% 100%;
+}
+[data-transform-origin='top'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='top'] .ds-fade-in-zoom-in-exit {
+  transform-origin: top;
+}
+[data-transform-origin='top left'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='top left'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 0 0;
+}
+[data-transform-origin='top right'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='top right'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 100% 0;
+}
+[data-transform-origin='left'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='left'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 0;
+}
+[data-transform-origin='left top'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='left top'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 0 0;
+}
+[data-transform-origin='left bottom'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='left bottom'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 0 100%;
+}
+[data-transform-origin='right'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='right'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 100%;
+}
+[data-transform-origin='right top'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='right top'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 100% 0;
+}
+[data-transform-origin='right bottom'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='right bottom'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 100% 100%;
+}
+[data-transform-origin='center'] .ds-fade-in-zoom-in-enter,
+[data-transform-origin='center'] .ds-fade-in-zoom-in-exit {
+  transform-origin: 50%;
+}
+
+/* ---------- fade + zoom + expand（高度展开） ---------- */
+.ds-fade-in-zoom-in-expand-enter {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.ds-fade-in-zoom-in-expand-enter-active {
+  opacity: 1;
+  transition:
+    max-height var(--ds-ease-in) var(--ds-transition-duration-fast),
+    opacity var(--ds-ease-in) var(--ds-transition-duration-fast),
+    transform var(--ds-ease-in) var(--ds-transition-duration-fast);
+  transform: scale(1);
+}
+.ds-fade-in-zoom-in-expand-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+.ds-fade-in-zoom-in-expand-exit-active {
+  opacity: 0;
+  transition:
+    max-height var(--ds-ease-out) var(--ds-transition-duration-fast),
+    opacity var(--ds-ease-out) var(--ds-transition-duration-fast),
+    transform var(--ds-ease-out) var(--ds-transition-duration-fast);
+  transform: scale(0.8);
+}
+.ds-fade-in-zoom-in-expand-top {
+  display: flex;
+  align-items: flex-start;
+}
+.ds-fade-in-zoom-in-expand-center {
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- floating 浮层容器 ---------- */
+.ds-floating-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ds-floating-position-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max-content;
+  pointer-events: all;
+}
+.ds-floating-position-wrapper.ds-floating-position-wrapper--rtl {
+  direction: rtl;
+}
+
+/* ---------- virtual list（官方 ds-virtual-list） ---------- */
+.ds-virtual-list {
+  height: 100%;
+  max-height: inherit;
+  min-width: 1px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-anchor: none;
+  outline: none;
+}
+.ds-virtual-list:not(.ds-virtual-list--show-scrollbar) {
+  scrollbar-width: none;
+}
+.ds-virtual-list:not(.ds-virtual-list--show-scrollbar)::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.ds-virtual-list.ds-virtual-list--x-scrollable {
+  overflow-x: auto;
+}
+.ds-virtual-list.ds-virtual-list--empty-centered {
+  display: flex;
+  flex-direction: column;
+}
+.ds-virtual-list-empty.ds-virtual-list-empty--center {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+/* ---------- dropdown menu（官方 ds-dropdown-menu） ---------- */
+.ds-dropdown-menu {
+  --dsl-dropdown-menu-font-size: var(--ds-font-size-m);
+  --dsl-dropdown-menu-option-icon-size: calc(var(--ds-font-size-m) + 2px);
+  --dsl-dropdown-menu-option-icon-margin: 0 8px 0 0;
+  --dsl-dropdown-menu-color: var(--dsw-specific-menu);
+  --dsl-dropdown-menu-option-text-color: var(--dsw-alias-label-primary);
+  --dsl-dropdown-menu-option-icon-color: var(--dsw-alias-label-primary);
+  --dsl-dropdown-menu-option-height: 24px;
+  --dsl-dropdown-menu-option-color-hover: var(--dsw-alias-interactive-bg-hover);
+  --dsl-dropdown-menu-option-error-color-hover: var(--dsw-alias-interactive-bg-hover-danger);
+  --dsl-dropdown-menu-padding: 4px;
+  --dsl-dropdown-menu-option-padding: 8px 10px;
+  --dsl-dropdown-menu-option-line-height: 24px;
+  --dsl-dropdown-menu-border-radius: 12px;
+  --dsl-dropdown-menu-option-border-radius: 8px;
+  --dsl-dropdown-menu-option-divider-margin: 8px;
+  --dsl-dropdown-menu-option-label-margin: 0;
+  --dsl-dropdown-menu-width: unset;
+  box-sizing: border-box;
+  min-width: 124px;
+  max-width: 280px;
+  width: var(--dsl-dropdown-menu-width);
+  padding: var(--dsl-dropdown-menu-padding);
+  border-radius: var(--dsl-dropdown-menu-border-radius);
+  background-color: var(--dsl-dropdown-menu-color);
+  color: var(--dsl-dropdown-menu-option-text-color);
+  box-shadow:
+    0 0 1px rgba(0, 0, 0, 0.2),
+    0 0 4px rgba(0, 0, 0, 0.02),
+    0 12px 32px rgba(0, 0, 0, 0.08);
+}
+.ds-dropdown-menu.ds-dropdown-menu--rtl {
+  --dsl-dropdown-menu-option-icon-margin: 0 0 0 8px;
+  direction: rtl;
+}
+.ds-dropdown-menu-option {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: var(--dsl-dropdown-menu-option-height);
+  padding: var(--dsl-dropdown-menu-option-padding);
+  overflow: auto;
+  border-radius: var(--dsl-dropdown-menu-option-border-radius);
+  color: var(--dsl-dropdown-menu-option-text-color);
+  font-size: var(--dsl-dropdown-menu-font-size);
+  line-height: var(--dsl-dropdown-menu-option-line-height);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--ds-transition-duration) var(--ds-ease-in-out),
+    color var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+.ds-dropdown-menu-option:hover,
+.ds-dropdown-menu-option.ds-dropdown-menu-option--pending {
+  background-color: var(--dsl-dropdown-menu-option-color-hover);
+}
+.ds-dropdown-menu-option.ds-dropdown-menu-option--selected {
+  background-color: var(--dsw-alias-interactive-bg-hover-solid);
+  font-weight: 500;
+}
+.ds-dropdown-menu-option.ds-dropdown-menu-option--error {
+  --dsl-dropdown-menu-option-text-color: var(--dsw-alias-state-error-primary);
+  --dsl-dropdown-menu-option-icon-color: var(--dsw-alias-state-error-primary);
+  --dsl-dropdown-menu-option-color-hover: var(--dsl-dropdown-menu-option-error-color-hover);
+}
+.ds-dropdown-menu-option .ds-dropdown-menu-option__icon {
+  display: flex;
+  margin: var(--dsl-dropdown-menu-option-icon-margin);
+  color: var(--dsl-dropdown-menu-option-icon-color);
+  font-size: var(--dsl-dropdown-menu-option-icon-size);
+}
+.ds-dropdown-menu-option .ds-dropdown-menu-option__label {
+  margin: var(--dsl-dropdown-menu-option-label-margin);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ds-dropdown-menu-option-divider {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border-style: solid;
+  border-width: 1px 0 0;
+  border-color: var(--dsw-alias-border-l2);
+  margin: var(--dsl-dropdown-menu-option-divider-margin);
+}
+
+/* ---------- modal（官方 ds-modal-*） ---------- */
+.ds-modal-overlay {
+  --dsl-modal-overlay-opacity: 0.36;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, var(--dsl-modal-overlay-opacity));
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+[data-ds-dark-theme] .ds-modal-overlay {
+  --dsl-modal-overlay-opacity: 0.6;
+}
+.ds-modal-wrapper {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  padding: 16px 0;
+  overflow: auto;
+  pointer-events: none;
+}
+.ds-modal-wrapper .ds-modal {
+  position: relative;
+  box-sizing: border-box;
+  margin: auto;
+  pointer-events: all;
+}
+
+/* ---------- 自绘滚动条（官方 ds-scroll-area__gutters） ---------- */
+/* 宿主：为 gutter 提供定位上下文；滚动容器自身隐藏原生滚动条 */
+.ds-scroll-host {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.ds-scroll-host > .ds-scroll-area,
+.ds-scroll-host > [data-ds-scroll-area] {
+  scrollbar-width: none;
+}
+.ds-scroll-host > [data-ds-scroll-area]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.ds-scroll-area__gutters {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease-out;
+  transition-delay: 1s;
+}
+.ds-scroll-host:hover > .ds-scroll-area__gutters {
+  opacity: 1;
+  transition-delay: 0s;
+}
+.ds-scroll-area__gutters:active {
+  opacity: 1;
+  transition-delay: 0s;
+}
+.ds-scroll-area__vertical-gutter {
+  position: absolute;
+}
+.ds-scroll-area__vertical-bar {
+  position: relative;
+  width: 100%;
+  cursor: initial;
+  pointer-events: all;
+}
+.ds-scroll-area__vertical-bar:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--dsw-alias-scrollbar-bg-l1);
+  border-radius: 100px;
+  transition:
+    background-color 0.1s ease-out,
+    width 0.1s ease-out;
+}
+.ds-scroll-area__vertical-bar:hover:after,
+.ds-scroll-area__vertical-bar:active:after {
+  background-color: var(--dsw-alias-scrollbar-hover-l1);
+  width: calc(100% + 2px);
+}

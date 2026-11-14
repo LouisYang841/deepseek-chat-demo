@@ -255,14 +255,16 @@
   display: none;
 }
 
+/* 开关按钮：与官网 ds-toggle-button 一致（34px 高、18px 圆角、1px 边框、13px/500 文字） */
 .toggle {
   display: inline-flex;
-  flex-shrink: 0;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
   gap: 4px;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 10px;
   border-radius: 18px;
   border: 1px solid var(--dsw-alias-border-l2);
   background-color: transparent;
@@ -274,8 +276,10 @@
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
+  outline: none;
   transition-property: border, background;
   transition-duration: 0.2s;
+  transition-timing-function: ease;
 
   &:hover:not(:disabled) {
     background-color: var(--dsw-alias-interactive-bg-hover);
@@ -295,6 +299,24 @@
       background-color: var(--dsw-alias-button-ghost-active-hover);
     }
   }
+}
+
+/* 开关图标：与官网 ds-toggle-button__icon 一致，固定 16px 见方 */
+.toggleIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+}
+
+.toggleIcon > div,
+.toggleIcon svg {
+  display: block;
+  width: 14px;
+  height: 14px;
 }
 
 .right {

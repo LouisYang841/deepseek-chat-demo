@@ -11,6 +11,16 @@
   max-width: 100%;
 }
 
+/* 正文图片：点击放大 */
+.ds-markdown .ds-markdown-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 16px 0;
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+
 .ds-markdown {
   h1 {
     font: var(--dsw-font-markdown-h1);
@@ -44,6 +54,23 @@
   h2,
   h3 {
     margin: 32px 0 16px 0;
+  }
+  /* 官方：h4~h6 紧跟列表时上下收紧到 8px */
+  h4 + ul,
+  h5 + ul,
+  h6 + ul,
+  h4 + ol,
+  h5 + ol,
+  h6 + ol {
+    margin-top: 8px;
+  }
+  h4:has(+ ul),
+  h5:has(+ ul),
+  h6:has(+ ul),
+  h4:has(+ ol),
+  h5:has(+ ol),
+  h6:has(+ ol) {
+    margin-bottom: 8px;
   }
 }
 .ds-markdown {
@@ -150,10 +177,23 @@
   padding-left: 14px;
 }
 
+/* 官方 app 层覆盖：正文表格横向占满整行（官网 _1210dd7 table{width:100%!important}），
+   列多到超出容器时由 .markdown-table-wrapper 的 overflow-x 横向滚动 */
+/*
+ * 官网分两层：
+ *   组件层 .ds-markdown table{width:max-content}；
+ *   应用层 ._1210dd7:not(:has(th:nth-child(4),td:nth-child(4))) table{width:100%;max-width:unset}
+ * —— 即 **< 4 列的表格铺满整行**，≥ 4 列才走 .markdown-table-wrapper--wide（表格 max-content）。
+ */
 .ds-markdown table {
   border-collapse: collapse;
-  width: max-content;
-  max-width: max-content;
+  width: 100%;
+  max-width: unset;
+}
+/* 官方 blockquote ._1210dd7 table{width:100%;max-width:unset}：引用块里即使 ≥4 列也不突破 */
+.ds-markdown blockquote table {
+  width: 100%;
+  max-width: unset;
 }
 .ds-markdown th {
   text-align: start;
@@ -334,6 +374,21 @@
   border-top-right-radius: var(--dsl-code-block-border-radius);
 }
 
+/* 官方：代码块头随页面滚动吸顶（思考过程里的代码块不吸顶） */
+.md-code-block-banner-wrap {
+  position: sticky;
+  top: 0;
+  /* 官方 z-index:6 + 底色，吸顶时挡住下方滚过的代码 */
+  z-index: 6;
+  background-color: var(--dsw-alias-bg-base);
+  border-top-left-radius: var(--dsl-code-block-border-radius);
+  border-top-right-radius: var(--dsl-code-block-border-radius);
+}
+
+.ds-think-content .ds-markdown .md-code-block-banner-wrap {
+  position: static;
+}
+
 .md-code-block > pre {
   font: var(--dsl-code-block-content-font);
   padding: 16px;
@@ -346,6 +401,58 @@
   overflow-x: auto;
 }
 
+/*
+ * 官方 _1210dd7:has(th:nth-child(4),td:nth-child(4)).c03cafe9：
+ * ≥4 列的表格把容器撑到整个滚动区宽度（右侧留 54px），表格按内容自然宽度并右移 54px，
+ * 正文文字仍然对齐原来的列宽。--message-list-scroll-width 由 MessageList 写入。
+ */
+.markdown-table-wrapper--wide {
+  --wide-gutter: calc((var(--message-list-scroll-width, 100%) - 100%) / 2);
+  --wide-padding-right: 54px;
+
+  box-sizing: border-box;
+  width: calc(
+    var(--message-list-scroll-width, 100%) - var(--wide-gutter) - var(--wide-padding-right)
+  );
+  padding-left: var(--wide-gutter);
+  padding-right: var(--wide-padding-right);
+  margin-left: calc(-1 * var(--wide-gutter));
+}
+
+.markdown-table-wrapper--wide > table {
+  display: inline-block;
+  width: max-content;
+  max-width: max-content;
+  margin-right: var(--wide-padding-right);
+}
+
+/* 官方 blockquote ._1210dd7 table：引用块里的表格不突破、按容器宽度铺满 */
+blockquote .markdown-table-wrapper--wide {
+  width: auto;
+  padding: 0;
+  margin-left: 0;
+}
+
+blockquote .markdown-table-wrapper--wide > table {
+  display: table;
+  width: 100%;
+  max-width: unset;
+  margin-right: 0;
+}
+
+/* 移动端没有居中列，不需要突破 */
+@media not all and (min-width: 768px) {
+  .markdown-table-wrapper--wide {
+    width: auto;
+    padding: 0;
+    margin-left: 0;
+  }
+
+  .markdown-table-wrapper--wide > table {
+    margin-right: 0;
+  }
+}
+
 .md-code-block-switch {
   display: flex;
   gap: 4px;
@@ -356,16 +463,75 @@
   }
 }
 
+/* Mermaid：外层定位工具条，内层滚动与缩放 */
+.md-mermaid-host {
+  position: relative;
+  background: var(--dsw-alias-markdown-code-block);
+  border-radius: 12px;
+  overflow: hidden;
+
+  &:hover .md-mermaid-toolbar,
+  &:focus-within .md-mermaid-toolbar {
+    opacity: 1;
+  }
+}
+
 .md-mermaid-diagram {
   padding: 16px;
   overflow: auto;
   text-align: center;
 
-  > svg {
+  > .md-mermaid-canvas > svg {
     display: block;
     max-width: 100%;
     height: auto;
     margin: 0 auto;
+  }
+}
+
+/* 工具条：右上角悬浮，hover 显示 */
+.md-mermaid-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  border-radius: 4096px;
+  background: var(--dsw-alias-bg-base);
+  border: 1px solid var(--dsw-alias-border-l2);
+  opacity: 0;
+  transition: opacity var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+
+.md-mermaid-scale {
+  min-width: 38px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.md-mermaid-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4096px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  transition: background-color var(--ds-transition-duration) var(--ds-ease-in-out);
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+    color: var(--dsw-alias-label-primary);
   }
 }
 

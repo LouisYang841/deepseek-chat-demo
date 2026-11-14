@@ -1,5 +1,6 @@
 import type { Image, Link as LinkNode } from 'mdast'
 import { memo, type ReactNode } from 'react'
+import { openImageViewer } from './imageViewerState.js'
 
 const sanitizeUrl = (url: string) => {
   // 如果URL没有协议，添加默认的https协议
@@ -46,11 +47,17 @@ export const Link = memo(function Link({
 })
 
 /** Markdown 图片显示为指向图片地址的链接 */
+/** 正文图片：点击打开全屏预览（官网 fullScreen） */
 export function ImageAsLink({ node }: { node: Image }) {
-  const url = sanitizeUrl(node.url)
+  const url = sanitizeUrl(node.url) ?? node.url
+  const alt = node.title ?? ''
   return (
-    <a href={url} title={node.title ?? ''} target="_blank" rel="noreferrer">
-      {url}
-    </a>
+    <img
+      className="ds-markdown-image"
+      src={url}
+      alt={alt}
+      loading="lazy"
+      onClick={() => openImageViewer(url, alt)}
+    />
   )
 }

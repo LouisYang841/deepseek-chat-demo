@@ -53,7 +53,8 @@ const abortTransaction = (tx: { abort(): void }) => {
 }
 
 // 每个操作拿到连接后立即创建事务；IndexedDB 按创建顺序执行范围重叠的事务，读取总能看到之前发起的写入。
-const getDB = () =>
+/** 供本模块内的检索等只读操作复用同一个连接 */
+export const getDB = () =>
   (dbPromise ??= openDB<ChatDB>('chat-demo', DB_VERSION, {
     upgrade(db, _oldVersion, _newVersion, tx) {
       // 初始化当前格式需要的存储与索引，不迁移旧消息。
@@ -113,6 +114,36 @@ export const renameSession = async (id: string, title: string): Promise<void> =>
           session.title = title
           await sessions.put(session)
           await tx.objectStore('sessionSummaries').put(storedSummary(session))
+        }
+      } catch (error) {
+        abortTransaction(tx)
+        throw error
+      }
+    })(),
+    tx.done,
+  ])
+}
+
+/** 批量置顶 / 取消置顶：同时更新详情与列表摘要。 */
+export const setSessionsPinned = async (ids: string[], pinned: boolean): Promise<void> => {
+  const tx = (await getDB()).transaction(['sessions', 'sessionSummaries'], 'readwrite')
+  await Promise.all([
+    (async () => {
+      try {
+        const sessions = tx.objectStore('sessions')
+        const summaries = tx.objectStore('sessionSummaries')
+        for (const id of ids) {
+          const session = await sessions.get(id)
+          if (session) {
+            session.pinned = pinned
+            await sessions.put(session)
+            await summaries.put(storedSummary(session))
+          } else {
+            const summary = await summaries.get(id)
+            if (summary) {
+              await summaries.put({ ...summary, pinned })
+            }
+          }
         }
       } catch (error) {
         abortTransaction(tx)

@@ -1,12 +1,11 @@
 import clsx from 'clsx'
 import { memo, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import {
-  IconGlobeLanguageOutline14,
   IconPaperclipOutline16,
   IconSendOutline16,
   IconStopFill16,
-  IconThinkOutline14,
 } from '../base/icons.js'
+import { GlobeToggleIcon, ThinkToggleIcon } from './ToggleIcons.js'
 import { setSearch, setThinking, useSettings } from '../../services/settings.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { sendMessage, stopReply, useChatStore } from '../../services/chat/store.js'
@@ -25,6 +24,7 @@ import { IconButton } from '../base/IconButton.js'
 import { Tooltip } from '../base/Tooltip.js'
 import { ensureApiKey } from '../settings/settingsDialogState.js'
 import { DragMask, useFileDrop } from './DragMask.js'
+import { ModelPicker } from './ModelPicker.js'
 import { showToast } from '../base/toastState.js'
 import { ACCEPT, useUploads } from '../../services/attachments.js'
 import { DraftAttachments } from './DraftAttachments.js'
@@ -200,7 +200,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         </div>
       </div>
       <div className={styles.functionRow}>
-        {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
+        {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方；图标为 Lottie 动画，切换时形变 */}
         <div ref={togglesRef} className={styles.toggles}>
           <Tooltip content={t('deactivatedThinkTooltip')}>
             <button
@@ -210,7 +210,9 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               aria-pressed={thinking}
               onClick={() => setThinking(!thinking)}
             >
-              <IconThinkOutline14 />
+              <span className={styles.toggleIcon}>
+                <ThinkToggleIcon enabled={thinking} />
+              </span>
               <span className={styles.toggleLabel}>{t('thinkingSwitch')}</span>
             </button>
           </Tooltip>
@@ -222,12 +224,15 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               aria-pressed={search}
               onClick={() => setSearch(!search)}
             >
-              <IconGlobeLanguageOutline14 />
+              <span className={styles.toggleIcon}>
+                <GlobeToggleIcon enabled={search} />
+              </span>
               <span className={styles.toggleLabel}>{t('search')}</span>
             </button>
           </Tooltip>
         </div>
         <div className={styles.right}>
+          {/* 语音输入来自官方开源 chat-demo 仓库（官网线上版没有），属于官方功能，保留 */}
           <VoiceButton
             status={voice.status}
             disabled={!voice.available}
@@ -260,6 +265,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               event.target.value = ''
             }}
           />
+          {/* 模型与思考强度：位于发送键左侧 */}
+          <ModelPicker />
           {streaming && sessionId ? (
             <button
               type="button"
@@ -272,16 +279,28 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             >
               <IconStopFill16 />
             </button>
-          ) : (
+          ) : canSend ? (
             <button
               type="button"
-              className={clsx(styles.sendButton, !canSend && styles.disabled)}
+              className={styles.sendButton}
               aria-label={t('send')}
-              aria-disabled={!canSend}
               onClick={send}
             >
               <IconSendOutline16 />
             </button>
+          ) : (
+            /* 官网：输入为空时发送键禁用，悬停提示「请输入你的问题」；有内容时不显示提示 */
+            <Tooltip content={t('chatInputEmptyPromptButtonTooltip')} placement="top">
+              <button
+                type="button"
+                className={clsx(styles.sendButton, styles.disabled)}
+                aria-label={t('chatInputEmptyPromptButtonTooltip')}
+                aria-disabled
+                onClick={send}
+              >
+                <IconSendOutline16 />
+              </button>
+            </Tooltip>
           )}
         </div>
       </div>

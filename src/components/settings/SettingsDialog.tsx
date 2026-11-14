@@ -1,13 +1,16 @@
 import clsx from 'clsx'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
+  IconCloseOutline16,
   IconDarkOutline16,
   IconDataOutline16,
   IconDownloadOutline16,
   IconFollowsystemOutline16,
   IconLightOutline16,
+  IconLinkOutline16,
   IconSettingsOutline16,
   IconUploadOutline14,
+  IconUserOutline16,
 } from '../base/icons.js'
 import {
   BackupError,
@@ -20,8 +23,9 @@ import { useChatStore } from '../../services/chat/store.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
 import {
   isChineseBrowser,
-  setLocale,
+  setLocalePreference,
   setLocation,
+  setSafetyCheck,
   setThemePreference,
   setTtsVoice,
   useSettings,
@@ -29,10 +33,13 @@ import {
 } from '../../services/settings.js'
 import { useTranslate, type TranslationKey, type TranslationMessage } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
+import { IconButton } from '../base/IconButton.js'
 import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
+import { ProviderSettings } from './ProviderSettings.js'
+import { pruneBlankProviders } from '../../services/providers.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -42,6 +49,12 @@ import styles from './Settings.module.css'
  */
 export const SettingsDialog = () => {
   const open = useSettingsDialog((state) => state.open)
+  // 关闭设置时丢弃全空的提供商卡片（添加后什么都没填的那种）
+  useEffect(() => {
+    if (!open) {
+      pruneBlankProviders()
+    }
+  }, [open])
   return open ? <SettingsContent /> : null
 }
 
@@ -51,14 +64,17 @@ const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode
     label: 'settingDialogAsideGeneralOptionLabel',
     icon: <IconSettingsOutline16 />,
   },
+  { value: 'account', label: 'settingDialogAsideAccountOptionLabel', icon: <IconUserOutline16 /> },
   { value: 'data', label: 'settingDialogAsideDataOptionLabel', icon: <IconDataOutline16 /> },
+  { value: 'terms', label: 'settingDialogAsideTermsOptionLabel', icon: <IconLinkOutline16 /> },
 ]
 
 const SettingsContent = () => {
   const t = useTranslate()
   const isMobile = useIsMobile()
-  // 打开时按调用方指定的分组选中，之后在弹窗内切换
-  const [section, setSection] = useState(() => useSettingsDialog.getState().section)
+  // 分组放进全局状态，便于 URL hash 记住刷新后仍停留在同一子页面
+  const section = useSettingsDialog((state) => state.section)
+  const setSection = (value: SettingsSection) => useSettingsDialog.setState({ section: value })
   // 切换分组不丢失正在输入的 API Key 与导入状态
   const apiKeyEditor = useApiKeyEditor()
   const historyImport = useHistoryImport()
@@ -68,7 +84,7 @@ const SettingsContent = () => {
   return (
     <>
       <Modal
-        title={t('settings')}
+        title={t('avatarMenuSettingsDialogTitle')}
         closable
         className={styles.dialog}
         mainClassName={styles.dialogMain}
@@ -99,11 +115,21 @@ const SettingsContent = () => {
               <ThemeSetting />
               <LocaleSetting />
               <TtsVoiceSetting />
+              <SafetyCheckSetting />
               <LocationSetting />
             </>
-          ) : (
+          ) : section === 'account' ? (
             <>
               <ApiKeyField editor={apiKeyEditor} />
+              {isMobile ? <ApiKeyConfirm editor={apiKeyEditor} /> : null}
+              {/* 其他模型提供商：可单独启用，供输入框的模型选择器使用 */}
+              <div className={styles.sectionTitle}>{t('providerTitle')}</div>
+              <ProviderSettings />
+            </>
+          ) : section === 'terms' ? (
+            <TermsSection />
+          ) : (
+            <>
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
               <SettingCell
@@ -121,7 +147,6 @@ const SettingsContent = () => {
                   </Button>
                 }
               />
-              {isMobile ? <ApiKeyConfirm editor={apiKeyEditor} /> : null}
             </>
           )}
         </div>
@@ -205,6 +230,36 @@ const useHistoryDelete = () => {
   }
 }
 
+/** 服务协议：用户协议与隐私政策，均在新标签页打开官网页面 */
+const TermsSection = () => {
+  const t = useTranslate()
+  const items = [
+    { label: t('settingsTermsUserAgreement'), href: 'https://cdn.deepseek.com/policies/zh-CN/deepseek-terms-of-use.html' },
+    { label: t('settingsTermsPrivacyPolicy'), href: 'https://cdn.deepseek.com/policies/zh-CN/deepseek-privacy-policy.html' },
+  ]
+  return (
+    <>
+      {items.map((item) => (
+        <SettingCell
+          key={item.href}
+          label={item.label}
+          status={null}
+          action={
+            <Button
+              variant="outlined"
+              size="m"
+              className={styles.cellButton}
+              onClick={() => window.open(item.href, '_blank', 'noopener,noreferrer')}
+            >
+              {t('settingsTermsView')}
+            </Button>
+          }
+        />
+      ))}
+    </>
+  )
+}
+
 const LocationSetting = () => {
   const t = useTranslate()
   const locale = useSettings((state) => state.locale)
@@ -221,6 +276,14 @@ const LocationSetting = () => {
       className={styles.locationCell}
       action={
         <div className={styles.locationSelectors}>
+          {location ? (
+            <IconButton
+              className={styles.locationClear}
+              icon={<IconCloseOutline16 />}
+              tooltip={t('settingsLocationClear')}
+              onClick={() => setLocation(null)}
+            />
+          ) : null}
           {isChineseBrowser() ? (
             <>
               <Select
@@ -271,7 +334,7 @@ const LocationSetting = () => {
 
 const LocaleSetting = () => {
   const t = useTranslate()
-  const locale = useSettings((state) => state.locale)
+  const localePreference = useSettings((state) => state.localePreference)
   return (
     <SettingCell
       label={t('settingsLocalePreference')}
@@ -279,12 +342,13 @@ const LocaleSetting = () => {
       action={
         <Select
           ariaLabel={t('settingsLocalePreference')}
-          value={locale}
+          value={localePreference}
           options={[
+            { value: 'system', label: t('settingsLocaleSystem') },
             { value: 'zh-CN', label: t('settingsLocaleZhCN'), lang: 'zh-CN' },
             { value: 'en-US', label: t('settingsLocaleEnUS'), lang: 'en' },
           ]}
-          onChange={setLocale}
+          onChange={setLocalePreference}
         />
       }
     />
@@ -308,6 +372,29 @@ const TtsVoiceSetting = () => {
             { value: 'tide', label: t('settingsTtsVoiceTide') },
           ]}
           onChange={setTtsVoice}
+        />
+      }
+    />
+  )
+}
+
+/** 服务端内容安全校验开关：关闭后请求不再携带 safety_check */
+const SafetyCheckSetting = () => {
+  const t = useTranslate()
+  const safetyCheck = useSettings((state) => state.safetyCheck)
+  return (
+    <SettingCell
+      label={t('settingsSafetyCheck')}
+      status={null}
+      action={
+        <Select
+          ariaLabel={t('settingsSafetyCheck')}
+          value={safetyCheck ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: t('settingsToggleOn') },
+            { value: 'off', label: t('settingsToggleOff') },
+          ]}
+          onChange={(value) => setSafetyCheck(value === 'on')}
         />
       }
     />

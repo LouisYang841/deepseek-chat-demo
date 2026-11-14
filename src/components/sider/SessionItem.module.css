@@ -1,7 +1,9 @@
+/* 会话项：与官网一致（官网是 <a> 标签，flex 布局，40px 高） */
 .item {
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   box-sizing: border-box;
   height: 40px;
   padding: 9px 6px 9px 10px;
@@ -9,27 +11,36 @@
   font-size: 14px;
   line-height: 22px;
   color: var(--dsw-alias-label-primary);
+  text-decoration: none;
   cursor: pointer;
+  outline: none;
 
-  &.active {
-    background-color: var(--dsw-specific-sidebar-nav-item-active-accent);
-    color: var(--dsw-alias-brand-primary-invert);
+  &:not(.active):hover,
+  &:not(.active):focus-within {
+    background-color: var(--dsw-specific-sidebar-nav-item-hover);
   }
 
-  @media (hover: hover) {
-    &:not(.active):hover {
-      background-color: var(--dsw-specific-sidebar-nav-item-hover);
-    }
+  /* 打开中的会话、鼠标悬停、键盘聚焦或菜单展开时都显示「…」 */
+  &.active .action,
+  &:hover .action,
+  &:focus-within .action,
+  .actionOpen {
+    display: flex;
+  }
 
-    &:hover,
-    &.active {
-      .action {
-        display: flex;
-      }
-    }
+  /* 菜单展开期间保持 hover 背景，只有菜单关闭才恢复 */
+  &.menuOpen:not(.active) {
+    background-color: var(--dsw-specific-sidebar-nav-item-hover);
   }
 }
 
+.active {
+  background-color: var(--dsw-specific-sidebar-nav-item-active-accent);
+  color: var(--dsw-alias-brand-primary-invert);
+  --row-bg: var(--dsw-specific-sidebar-nav-item-active-accent);
+}
+
+/* 标题：单行省略 */
 .title {
   flex: 1;
   min-width: 0;
@@ -39,12 +50,100 @@
   line-height: 18px;
 }
 
+/*
+ * 右侧操作区：仅 hover / focus / 展开中的会话显示，不加任何背景/渐变。
+ * 官网结构：遮罩层 `._254829d`（56px，pointer-events:none）+ 按钮 `._2090548`
+ * （`position:absolute; right:4px`），所以「…」距行右边缘 4px，而不是条带居中。
+ */
 .action {
   display: none;
-  flex-shrink: 0;
-  margin-left: 4px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: flex-end;
+  width: 56px;
+  padding-right: 4px;
+  pointer-events: none;
+
+  /* 遮罩不拦点击，按钮自己接收事件（官网 ._2090548 pointer-events:auto） */
+  button {
+    pointer-events: auto;
+
+    /* 官网 .ds-button__background：hover 时出现 rgba(38,49,72,.06) 胶囊底 */
+    &:hover:not(:disabled) {
+      background-color: var(--dsw-alias-interactive-bg-hover);
+    }
+
+    &:active:not(:disabled) {
+      background-color: var(--dsw-alias-interactive-bg-active);
+    }
+  }
 }
 
+/* 批量模式：勾选框固定 20px 槽位 + 10px 间距（与官网 _8842fa1 一致） */
+.checkboxSlot {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.batchMode {
+  justify-content: flex-start;
+}
+
+.batchMode .checkboxSlot {
+  width: 20px;
+  margin-right: 10px;
+  opacity: 1;
+}
+
+/* 进入多选：宽度 0 → 20、margin 0 → 10、透明度 0 → 1 */
+.batchEnter .checkboxSlot {
+  animation:
+    batchSlotIn 0.2s var(--ds-ease-out, ease-out),
+    batchSlotFadeIn 0.2s var(--ds-ease-in, ease-in);
+}
+
+/* 退出多选：宽度 20 → 0，并淡出 */
+.batchExit .checkboxSlot {
+  animation:
+    batchSlotOut 0.2s var(--ds-ease-in, ease-in) forwards,
+    batchSlotFadeOut 0.2s var(--ds-ease-out, ease-out) forwards;
+}
+
+@keyframes batchSlotIn {
+  0% {
+    width: 0;
+    margin-right: 0;
+  }
+}
+
+@keyframes batchSlotOut {
+  to {
+    width: 0;
+    margin-right: 0;
+  }
+}
+
+@keyframes batchSlotFadeIn {
+  0% {
+    opacity: 0;
+  }
+}
+
+@keyframes batchSlotFadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* 重命名输入框 */
 .renameInput {
   box-sizing: border-box;
   width: 100%;
@@ -57,12 +156,6 @@
   font: inherit;
   font-size: 14px;
   outline: none;
-}
-
-@media (hover: none) {
-  .action {
-    display: flex;
-  }
 }
 
 @media not all and (min-width: 768px) {

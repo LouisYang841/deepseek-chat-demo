@@ -16,16 +16,40 @@
   padding: 0 32px 64px;
 }
 
+/* 问候语：品牌图标在左，文字在右，整体居中 */
 .greeting {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   margin-bottom: 21px;
   font-size: 24px;
   line-height: 32px;
   font-weight: 600;
   text-align: center;
   color: var(--dsw-alias-label-primary);
+}
+
+.greetingLogo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--dsw-alias-brand-primary);
+}
+
+.greetingText {
+  min-width: 0;
+}
+
+/* 底部免责声明：桌面端在输入框下方，移动端贴底 */
+.caveat {
+  width: 100%;
+  padding: 6px 0;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+  user-select: none;
 }
 
 @media (max-width: 439px) {
