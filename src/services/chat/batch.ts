@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { showToast } from '../../components/base/toastState.js'
 
 /**
  * 会话多选（批量管理）状态。
@@ -28,16 +29,27 @@ export const exitBatchMode = () => {
   useBatchStore.setState({ active: false, selected: [] })
 }
 
-/** 勾选 / 取消勾选单个会话 */
+/** 官网多选上限 */
+const MAX_SELECT = 99
+
+/** 勾选 / 取消勾选单个会话（超过上限时提示，与官网一致） */
 export const toggleBatchSelection = (sessionId: string) => {
-  useBatchStore.setState((state) => ({
-    selected: state.selected.includes(sessionId)
-      ? state.selected.filter((id) => id !== sessionId)
-      : [...state.selected, sessionId],
-  }))
+  const { selected } = useBatchStore.getState()
+  if (selected.includes(sessionId)) {
+    useBatchStore.setState({ selected: selected.filter((id) => id !== sessionId) })
+    return
+  }
+  if (selected.length >= MAX_SELECT) {
+    showToast({ key: 'sessionBatchMaxSelectToast' })
+    return
+  }
+  useBatchStore.setState({ selected: [...selected, sessionId] })
 }
 
-/** 全选 / 取消全选 */
+/** 全选 / 取消全选（截断到上限并提示） */
 export const setBatchSelection = (sessionIds: string[]) => {
-  useBatchStore.setState({ selected: sessionIds })
+  if (sessionIds.length > MAX_SELECT) {
+    showToast({ key: 'sessionBatchMaxSelectToast' })
+  }
+  useBatchStore.setState({ selected: sessionIds.slice(0, MAX_SELECT) })
 }

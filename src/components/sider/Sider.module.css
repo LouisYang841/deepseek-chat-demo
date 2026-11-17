@@ -211,6 +211,14 @@
   scrollbar-color: var(--scroll-color) transparent;
 }
 
+.emptyHistory {
+  padding: 24px 10px;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+  color: var(--dsw-alias-label-caption);
+}
+
 /* 列表底部渐隐：72px 渐变到侧栏底色（官网 _1d72f01） */
 .listFade {
   position: absolute;
@@ -266,6 +274,118 @@
   background-color: var(--dsw-specific-sidebar-fill);
   box-shadow: 4px 0 0 var(--dsw-specific-sidebar-fill);
   user-select: none;
+}
+
+/* ===== 置顶分组折叠（官网模块 52630/28418，known-issues-re.md 项 2） ===== */
+
+/* 折叠按钮 f8ca4798：占满标题行，hover 用 ::before 蒙层 */
+.pinnedFoldButton {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  margin: -2px 35px -2px -10px;
+  border-radius: 11px;
+  cursor: pointer;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: var(--dsw-alias-interactive-bg-hover);
+    opacity: 0;
+    transition: opacity var(--ds-transition-duration) var(--ds-ease-in-out);
+  }
+
+  &:hover::before {
+    opacity: 1;
+  }
+}
+
+/* 标题内 span _24fab21：文案 + chevron */
+.pinnedFoldLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  white-space: nowrap;
+}
+
+.pinnedChevron {
+  display: flex;
+}
+
+/* 展开态 chevron 向上（官网 fZ）；折叠态向下（uj） */
+.pinnedChevronUp {
+  transform: rotate(180deg);
+}
+
+/* 折叠动画容器 e07f456c：grid-template-rows 1fr↔0fr + opacity 的 .2s 过渡 */
+.pinnedContent {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+  transition:
+    grid-template-rows 0.2s var(--ds-ease-in),
+    opacity 0.2s var(--ds-ease-in);
+}
+
+/* 折叠态 dfba9ff4 */
+.pinnedContentFolded {
+  opacity: 0;
+  grid-template-rows: 0fr;
+}
+
+/* 展开动画 _3447e59（keyframes _390ce2d / _3cd7c74） */
+.pinnedContentExpand {
+  animation:
+    pinnedExpandRows 0.2s var(--ds-ease-out),
+    pinnedExpandOpacity 0.2s var(--ds-ease-in-out);
+}
+
+.pinnedInner {
+  min-height: 0;
+}
+
+@keyframes pinnedExpandRows {
+  0% {
+    grid-template-rows: 0fr;
+  }
+}
+
+@keyframes pinnedExpandOpacity {
+  0% {
+    opacity: 0;
+  }
+}
+
+/* ===== 会话列表初始加载失败（官网 89720：_47ef3ad + ede76300，known-issues-re.md 项 9） ===== */
+
+.loadFailed {
+  width: 100%;
+  padding: 16px 12px;
+  color: var(--dsw-alias-label-secondary);
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.loadFailedText {
+  margin-bottom: 8px;
+}
+
+/* 官网「重试加载」是行内主色按钮（ds-button--text 形态） */
+.loadFailedRetry {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-brand-primary);
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
 }
 
 /* 批量管理入口：官方 _8023265 —— 12×12 图标，贴合分组标题行右侧（right:10 相对分组行） */
@@ -365,6 +485,7 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* 官网 _5a20a69：fixed 左上，margin 12/16，无 gap（胶囊用 margin-left:16 分隔） */
 .collapsed {
   position: absolute;
   top: 0;
@@ -372,16 +493,32 @@
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 16px;
   margin: 12px 0 0 16px;
 }
 
+/* 官网 _6acebc2：鲸鱼 logo 27×24，点击回新对话页 */
+.collapsedLogo {
+  width: 27px;
+  height: 24px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapsedLogo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 官网 e5bf614e：胶囊 114×40，margin-left:16，padding 仅右侧 3px，按钮 34×34 */
 .collapsedGroup {
   display: flex;
   align-items: center;
   gap: 2px;
   height: 40px;
-  padding: 0 2px;
+  margin-left: 16px;
+  padding: 0 3px 0 0;
   box-sizing: border-box;
   border-radius: 100px;
   border: 1px solid var(--dsw-alias-border-l2);
@@ -389,22 +526,44 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
+/*
+ * 移动端抽屉动画：照搬官网 dc04ec1d / a02af2e6 / _4cbcd96。
+ * 抽屉常驻 DOM，靠 translateX 滑入滑出；遮罩靠 opacity 淡入淡出；
+ * 时长/曲线用官网 token --ds-transition-duration-slow(0.3s) / --ds-ease-in-out。
+ */
 .drawer {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
   z-index: 800;
+  will-change: transform;
+  transform: translateX(0);
+  transition: transform var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+.drawerClosed {
+  transform: translateX(-100%);
+  pointer-events: none;
 }
 
 .drawerMask {
   position: absolute;
   inset: 0;
   z-index: 799;
+  background-color: rgba(0, 0, 0, 0.4);
+  opacity: 1;
+  transition: opacity var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+}
+
+.drawerMaskHidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .mobile {
-  width: 300px;
+  /* 官网 --sider-width:261px（:root 原值，抽屉内层 a2f3d50e 同宽） */
+  width: var(--sider-width, 261px);
   max-width: calc(100vw - 48px);
 
   .listWrap {
@@ -417,10 +576,8 @@
     line-height: 22px;
   }
 
-  .bottom {
-    height: auto;
-    padding: 12px 0;
-  }
+  /* 官网 b8812f16 移动端：safe-area 底部内边距；账户行保持 64px 贴底（无额外 padding） */
+  padding-bottom: env(safe-area-inset-bottom);
 
   .settings {
     padding: 9px 10px;

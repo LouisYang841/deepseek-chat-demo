@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import {
+  IconChevronDownOutline14,
   IconPanelLeftOutline16,
   IconSearchOutline16,
   NewChatIcon,
@@ -9,7 +10,7 @@ import {
 import { DeepSeekWordmark } from '../base/brand.js'
 import { setSiderCollapsed } from '../../services/settings.js'
 import { groupSessions } from '../../services/chat/sessionGroups.js'
-import { newChat, removeSession, useChatStore } from '../../services/chat/store.js'
+import { initChat, newChat, removeSession, useChatStore } from '../../services/chat/store.js'
 import { enterBatchMode, exitBatchMode, useBatchStore } from '../../services/chat/batch.js'
 import { isMac, shortcutLabel } from '../../utils/platform.js'
 import { useDelayedValue } from '../../utils/useDelayedValue.js'
@@ -17,6 +18,7 @@ import type { SessionSummary } from '../../services/chat/types.js'
 import { Button } from '../base/Button.js'
 import { IconButton } from '../base/IconButton.js'
 import { Modal } from '../base/Modal.js'
+import { Tooltip } from '../base/Tooltip.js'
 import { ScrollGutters } from '../base/ScrollGutters.js'
 import { showToast } from '../base/toastState.js'
 import { closeMobileSider, useMobileSider } from './mobileSiderState.js'
@@ -35,9 +37,16 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const listRef = useRef<HTMLDivElement>(null)
   const sessions = useChatStore((state) => state.sessions)
   const activeId = useChatStore((state) => state.activeId)
+  const ready = useChatStore((state) => state.ready)
+  const initError = useChatStore((state) => state.initError)
   const [now, setNow] = useState(Date.now)
   const groups = useMemo(() => groupSessions(sessions, now, t), [sessions, now, t])
+  // 置顶分组单独渲染（可折叠），其余分组走通用列表
+  const pinnedGroup = groups[0]?.key === 'pinned' ? groups[0] : null
+  const restGroups = pinnedGroup ? groups.slice(1) : groups
   const [deleting, setDeleting] = useState<SessionSummary | null>(null)
+  // 删除确认弹窗的关闭函数：先播退出动画再卸载（避免一闪消失）
+  const deleteModalCloseRef = useRef<(() => void) | null>(null)
   const [deletePending, setDeletePending] = useState(false)
   const [searching, setSearching] = useState(false)
   const batchActive = useBatchStore((state) => state.active)
@@ -179,11 +188,11 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
       </div>
       <div className={clsx(styles.listWrap, 'ds-scroll-host')}>
         {!batchActive && groups.length > 0 ? (
+          <Tooltip content={t('batchManage')} placement="bottom">
           <button
             type="button"
             className={styles.batchEntry}
             aria-label={t('batchManage')}
-            title={t('batchManage')}
             onClick={() => enterBatchMode()}
           >
             <span className={styles.batchIcon} aria-hidden>
@@ -210,9 +219,37 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
               </svg>
             </span>
           </button>
+          </Tooltip>
         ) : null}
         <div className={styles.list} ref={listRef} data-ds-scroll-area>
-          {groups.map((group) => (
+          {/* 官网初始加载失败分支（known-issues-re.md 项 9）：「加载失败，你可以 重试加载」；
+              追加失败分支（sessionLoadMoreOnError）对应官网分页加载，我们一次性载入本地库，
+              不存在追加场景，故只实现初始失败分支 */}
+          {initError ? (
+            <div className={styles.loadFailed}>
+              <div className={styles.loadFailedText}>
+                {t('historyLoadFailed')}{' '}
+                <button
+                  type="button"
+                  className={styles.loadFailedRetry}
+                  onClick={() => void initChat()}
+                >
+                  {t('historyLoadFailedButton')}
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {ready && !initError && groups.length === 0 ? (
+            <div className={styles.emptyHistory}>{t('historyIsEmpty')}</div>
+          ) : null}
+          {pinnedGroup ? (
+            <PinnedGroup
+              group={pinnedGroup}
+              activeId={activeId}
+              onDelete={(session) => setDeleting(session)}
+            />
+          ) : null}
+          {restGroups.map((group) => (
             <div key={group.key} className={styles.section}>
               <div className={styles.sectionHeader}>
                 <span>{group.label}</span>
@@ -249,6 +286,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
       {deleting ? (
         <Modal
           title={t('deleteSessionModalContentTitle')}
+          closeRef={deleteModalCloseRef}
           onClose={() => {
             if (!deletePending) {
               setDeleting(null)
@@ -256,7 +294,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
           }}
           footer={
             <>
-              <Button variant="outlined" disabled={deletePending} onClick={() => setDeleting(null)}>
+              <Button variant="outlined" disabled={deletePending} onClick={() => deleteModalCloseRef.current?.()}>
                 {t('cancel')}
               </Button>
               <Button
@@ -266,7 +304,8 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
                   setDeletePending(true)
                   try {
                     if (await removeSession(deleting.id)) {
-                      setDeleting(null)
+                      // 先播退出动画，onExited 后 onClose 再卸载
+                      deleteModalCloseRef.current?.()
                     } else {
                       showToast({ key: 'sessionDeleteFailed', type: 'error' })
                     }
@@ -288,16 +327,133 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   )
 }
 
-/** 移动端抽屉：浮在页面上方，点空白区域关闭。 */
+/**
+ * 置顶分组（官网模块 52630/28418，known-issues-re.md 项 2）：
+ * - 仅置顶数 >10 才出现可点击折叠标题（≤10 是纯 span，且折叠态会自动弹回展开）；
+ * - 折叠态文案「置顶 N 个对话」（pinNCountChats）+ chevron 方向切换 + tooltip 收起/展开；
+ * - 折叠状态持久化（官网按用户存 pinnedSessionsFolded，我们单用户存 localStorage）；
+ * - 动画 = grid-template-rows 1fr↔0fr 的 .2s 过渡：折叠 = folded 类（0fr+opacity 0），
+ *   展开 = 清类 + 从 0fr 起步的 keyframes（1fr↔0fr 同 track 结构可平滑插值；
+ *   官网的 inline px FLIP 在 Chromium 下 px↔px 不插值会跳变，故不用）。
+ */
+const PINNED_FOLD_THRESHOLD = 10
+const PINNED_FOLDED_KEY = 'chat-demo:pinned-sessions-folded'
+
+const readPinnedFolded = () => window.localStorage.getItem(PINNED_FOLDED_KEY) === 'true'
+
+type SessionGroup = { key: string; label: string; sessions: SessionSummary[] }
+
+const PinnedGroup = ({
+  group,
+  activeId,
+  onDelete,
+}: {
+  group: SessionGroup
+  activeId: string | null
+  onDelete: (session: SessionSummary) => void
+}) => {
+  const t = useTranslate()
+  const count = group.sessions.length
+  const [folded, setFolded] = useState(readPinnedFolded)
+  const [expanding, setExpanding] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // 官网 effect：折叠态但数量 ≤ 阈值时自动展开回去
+  useEffect(() => {
+    if (folded && count > 0 && count <= PINNED_FOLD_THRESHOLD) {
+      window.localStorage.setItem(PINNED_FOLDED_KEY, 'false')
+      setFolded(false)
+    }
+  }, [folded, count])
+
+  const toggleFold = () => {
+    // 官网用「inline 高度 → reflow → 0px」的 FLIP 过渡，但 Chromium 对 grid-template-rows 的
+    // px↔px 过渡不插值（实测直接跳变）；fr↔fr（1fr→0fr，同 track 结构）可平滑插值，
+    // 视觉效果与官网一致且更稳，故折叠/展开都走类切换：
+    // 折叠 = folded 类（0fr + opacity 0）过渡；展开 = 清类 + 从 0fr 起步的 keyframes 动画。
+    window.localStorage.setItem(PINNED_FOLDED_KEY, String(!folded))
+    setFolded(!folded)
+    if (folded) {
+      setExpanding(true)
+    }
+  }
+
+  const header =
+    count > PINNED_FOLD_THRESHOLD ? (
+      <Tooltip
+        content={t(
+          folded ? 'sessionPinnedSectionExpandTooltip' : 'sessionPinnedSectionCollapseTooltip'
+        )}
+        placement="bottom"
+      >
+        <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={!folded}
+          className={styles.pinnedFoldButton}
+          onClick={toggleFold}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              toggleFold()
+            }
+          }}
+        >
+          <span className={styles.pinnedFoldLabel}>
+            <span>{folded ? t('pinNCountChats', { count }) : t('pinnedSectionTitle')}</span>
+            <span className={clsx(styles.pinnedChevron, !folded && styles.pinnedChevronUp)} aria-hidden>
+              <IconChevronDownOutline14 />
+            </span>
+          </span>
+        </div>
+      </Tooltip>
+    ) : (
+      <span>{t('pinnedSectionTitle')}</span>
+    )
+
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionHeader}>{header}</div>
+      <div
+        ref={contentRef}
+        className={clsx(
+          styles.pinnedContent,
+          folded && styles.pinnedContentFolded,
+          expanding && styles.pinnedContentExpand
+        )}
+        onAnimationEnd={() => setExpanding(false)}
+      >
+        <div className={styles.pinnedInner}>
+          {group.sessions.map((session) => (
+            <SessionItem
+              key={session.id}
+              session={session}
+              active={session.id === activeId}
+              onDelete={() => onDelete(session)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 移动端抽屉：官网原始实现是「常驻 DOM + translateX 滑入滑出 + 遮罩 opacity 淡入淡出」，
+ * 关键 class：抽屉 .dc04ec1d / 关闭态 .a02af2e6，遮罩 ._4cbcd96。
+ * 这里不再 `if(!open) return null`（那样没有动画），而是始终渲染，用 open class 切换，
+ * 让 CSS transition 生效；关闭动画结束后用 inert 阻止交互。
+ */
 export const MobileSider = () => {
   const open = useMobileSider((state) => state.open)
-  if (!open) {
-    return null
-  }
   return (
     <>
-      <div className={styles.drawerMask} onClick={closeMobileSider} />
-      <div className={styles.drawer}>
+      <div
+        className={clsx(styles.drawerMask, !open && styles.drawerMaskHidden)}
+        onClick={closeMobileSider}
+        aria-hidden={!open}
+      />
+      <div className={clsx(styles.drawer, !open && styles.drawerClosed)} aria-hidden={!open}>
         <Sider mobile />
       </div>
     </>

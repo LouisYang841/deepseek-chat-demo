@@ -1,18 +1,19 @@
 import clsx from 'clsx'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useIsMobile } from '../../app/viewport.js'
 import { useTranslate } from '../../i18n/index.js'
 import { setProvider, setThinkingEffort, useSettings, type ThinkingEffort } from '../../services/settings.js'
 import { enabledProviders, useProviders, type CustomProvider } from '../../services/providers.js'
 import {
-  ensureVendorLogo,
+  findCatalogModel,
   loadModelsDev,
-  logoUrl,
-  lookupModel,
+  matchCatalogProvider,
   useModelsDev,
-  vendorLogoReady,
   type ModelsDevProvider,
 } from '../../services/modelsDev.js'
 import { Popover } from '../base/Popover.js'
+import { VendorLogo } from '../base/VendorLogo.js'
+import { IconCheckOutline16 } from '../base/icons.js'
 import {
   IconChevronDownOutline14,
   IconChevronRightOutline14,
@@ -23,8 +24,8 @@ import styles from './ModelPicker.module.css'
 
 /** 内置 DeepSeek 提供商的模型（请求走官方 Anthropic 兼容接口） */
 const BUILTIN_MODELS = [
-  { id: 'deepseek-flash', name: 'DeepSeek Flash' },
-  { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro' },
+  { id: 'deepseek-flash', name: 'DeepSeek Flash', vendor: 'deepseek' },
+  { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', vendor: 'deepseek' },
 ]
 
 const EFFORTS: ThinkingEffort[] = ['standard', 'deep', 'max']
@@ -53,52 +54,83 @@ export type ModelEntry = {
   vendor: string | null
 }
 
+/** 按厂商在目录里找模型：先认提供商（按 baseUrl），再在它名下按 id 找 */
+const resolveCustomVendor = (
+  provider: CustomProvider,
+  modelId: string,
+  catalog: Record<string, ModelsDevProvider>
+): string | null => {
+  const matched = matchCatalogProvider(
+    { id: provider.id, name: provider.name, baseUrl: provider.baseUrl },
+    catalog
+  )
+  const found = findCatalogModel(matched, modelId, catalog)
+  return found?.provider.id ?? matched?.id ?? null
+}
+
 /** 组装可选模型：内置 DeepSeek + 每个启用的自定义提供商 */
 export const buildEntries = (
   providers: CustomProvider[],
   catalog: Record<string, ModelsDevProvider>
 ): ModelEntry[] => {
   const entries: ModelEntry[] = BUILTIN_MODELS.map((model) => {
-    // 名字与原厂 logo 都来自目录里**完全相同 id** 的那一条
-    const found = lookupModel(model.id, catalog)
+    // 名字尽量用目录里的真名；厂商固定是 deepseek，不再靠易错的模型 id 匹配推断
+    const found = findCatalogModel(catalog.deepseek, model.id, catalog)
     return {
       providerId: BUILTIN_PROVIDER_ID,
       providerName: 'DeepSeek',
       id: model.id,
       name: found?.model.name ?? model.name,
-      vendor: found?.provider.id ?? null,
+      vendor: model.vendor,
     }
   })
   for (const provider of enabledProviders(providers)) {
     for (const id of provider.models) {
-      const found = lookupModel(id, catalog)
+      const found = findCatalogModel(matchCatalogProvider(
+        { id: provider.id, name: provider.name, baseUrl: provider.baseUrl },
+        catalog
+      ), id, catalog)
       entries.push({
         providerId: provider.id,
         providerName: provider.name || provider.id,
         id,
         name: found?.model.name ?? id,
-        vendor: found?.provider.id ?? null,
+        vendor: resolveCustomVendor(provider, id, catalog),
       })
     }
   }
   return entries
 }
 
+/** 按模型 id 在全部提供商条目中解析显示名与厂商（顶栏模型名标签用，官网 _B/_F 语义） */
+export const useModelEntry = (modelId: string | null): ModelEntry | null => {
+  const providers = useProviders((state) => state.providers)
+  const catalog = useModelsDev((state) => state.providers)
+  return useMemo(() => {
+    if (modelId === null) {
+      return null
+    }
+    const entries = buildEntries(providers, catalog)
+    return entries.find((entry) => entry.id === modelId) ?? null
+  }, [providers, catalog, modelId])
+}
+
 /**
  * 输入框右侧（发送键左侧）的模型与推理等级选择。
  * 结构参照 DSH 的 ModelSelect：根菜单是「模型 / 推理等级」两行，分别钻取；
  * 没有推理等级可选时（关闭深度思考）直接进入模型列表。
+ * 移动端收缩成一个不带名称的小按钮，避免挤占输入区。
  */
 export const ModelPicker = () => {
   const t = useTranslate()
+  // 移动端收缩成单图标按钮（官网 <768 抽屉布局同款）
+  const isMobile = useIsMobile()
   const providerId = useSettings((state) => state.providerId)
   const model = useSettings((state) => state.model)
   const thinking = useSettings((state) => state.thinking)
   const effort = useSettings((state) => state.thinkingEffort)
   const providers = useProviders((state) => state.providers)
-  // 目录加载完成 / logo 探测完成后重算一次
   const catalog = useModelsDev((state) => state.providers)
-  const [logoRevision, setLogoRevision] = useState(0)
   const [pane, setPane] = useState<Pane>('root')
   const [query, setQuery] = useState('')
   // Popover 每次渲染都会回调 onIsOpenChange，必须只在实际打开的那一次重置面板
@@ -111,29 +143,10 @@ export const ModelPicker = () => {
 
   const entries = useMemo(() => buildEntries(providers, catalog), [providers, catalog])
 
-  // 探测当前可见模型所属厂商的 logo（同一厂商只请求一次）
-  useEffect(() => {
-    const vendors = new Set(entries.map((entry) => entry.vendor).filter(Boolean) as string[])
-    for (const vendor of vendors) {
-      if (vendorLogoReady(vendor) === undefined) {
-        void ensureVendorLogo(vendor, () => setLogoRevision((value) => value + 1))
-      }
-    }
-  }, [entries])
-
-  const hasLogo = useCallback(
-    (entry: ModelEntry) => {
-      // logoRevision 代表探测结果的版本，读到它才能让谓词随结果更新而重算
-      void logoRevision
-      return entry.vendor !== null && vendorLogoReady(entry.vendor) === true
-    },
-    [logoRevision]
-  )
-
   const current = entries.find((entry) => entry.providerId === providerId && entry.id === model) ?? entries[0]
   const filtered = entries.filter((entry) => matchesModelQuery(entry, query))
 
-  /** 分组，并让有 logo 的模型排在前面 */
+  /** 按提供商分组 */
   const grouped = useMemo(() => {
     const map = new Map<string, { name: string; models: ModelEntry[] }>()
     for (const entry of filtered) {
@@ -141,12 +154,8 @@ export const ModelPicker = () => {
       bucket.models.push(entry)
       map.set(entry.providerId, bucket)
     }
-    return [...map.entries()].map(([id, value]) => ({
-      id,
-      name: value.name,
-      models: [...value.models].sort((a, b) => Number(hasLogo(b)) - Number(hasLogo(a))),
-    }))
-  }, [filtered, hasLogo])
+    return [...map.entries()].map(([id, value]) => ({ id, name: value.name, models: value.models }))
+  }, [filtered])
 
   const effortLabel: Record<ThinkingEffort, string> = {
     standard: t('thinkingEffortStandard'),
@@ -166,10 +175,8 @@ export const ModelPicker = () => {
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (open && !wasOpenRef.current) {
-        // 只有「模型 / 推理等级」两行时才需要根菜单；否则直接进模型列表
         setPane(thinking ? 'root' : 'model')
         setQuery('')
-        // 目录有 6MB，放到第一次打开时再拉，不拖慢首屏
         void loadModelsDev()
       }
       wasOpenRef.current = open
@@ -187,15 +194,24 @@ export const ModelPicker = () => {
         <button
           ref={domRef as React.RefObject<HTMLButtonElement>}
           type="button"
-          className={styles.button}
+          className={clsx(styles.button, isMobile && styles.buttonCompact)}
           aria-label={t('modelSelectorLabel')}
           aria-expanded={isOpen}
           aria-haspopup="menu"
           title={thinking ? `${currentLabel} · ${effortLabel[effort]}` : currentLabel}
           {...domProps}
         >
-          <span className={styles.buttonText}>{currentLabel}</span>
-          {thinking ? <span className={styles.effort}>{effortLabel[effort]}</span> : null}
+          {isMobile ? (
+            // 移动端：只留一个厂商 logo 小图标，不显示名称，避免挤占输入区
+            current?.vendor ? (
+              <VendorLogo className={styles.compactLogo} vendor={current.vendor} size={16} />
+            ) : (
+              <span className={styles.compactFallback}>{t('modelSelectorLabel')}</span>
+            )
+          ) : (
+            <span className={styles.buttonText}>{currentLabel}</span>
+          )}
+          {!isMobile && thinking ? <span className={styles.effort}>{effortLabel[effort]}</span> : null}
           <IconChevronDownOutline14 />
         </button>
       )}
@@ -273,24 +289,20 @@ export const ModelPicker = () => {
                             key={`${entry.providerId}:${entry.id}`}
                             role="menuitemradio"
                             aria-checked={selected}
-                            className={clsx(
-                              'ds-dropdown-menu-option',
-                              styles.option,
-                              selected && 'ds-dropdown-menu-option--selected'
-                            )}
+                            className={clsx('ds-dropdown-menu-option', styles.option)}
                             onClick={() => setProvider(entry.providerId, entry.id)}
                           >
-                            {/* 原厂 logo：按模型 id 判断归属，判断不出就不渲染、不占位 */}
-                            {entry.vendor !== null && vendorLogoReady(entry.vendor) === true ? (
-                              <img
-                                className={styles.logo}
-                                src={logoUrl(entry.vendor)}
-                                alt=""
-                                aria-hidden
-                                loading="lazy"
-                              />
+                            {/* 厂商 logo：内联 SVG，currentColor 随主题，深色模式自动适配 */}
+                            {entry.vendor ? (
+                              <VendorLogo className={styles.logo} vendor={entry.vendor} size={16} />
                             ) : null}
                             <span className={styles.optionLabel}>{entry.name}</span>
+                            {/* 用户定制：已选模型用右侧小钩标记，不做高亮 */}
+                            {selected ? (
+                              <span className={styles.optionCheck}>
+                                <IconCheckOutline16 />
+                              </span>
+                            ) : null}
                           </div>
                         )
                       })}
@@ -308,14 +320,15 @@ export const ModelPicker = () => {
                   key={level}
                   role="menuitemradio"
                   aria-checked={level === effort}
-                  className={clsx(
-                    'ds-dropdown-menu-option',
-                    styles.option,
-                    level === effort && 'ds-dropdown-menu-option--selected'
-                  )}
+                  className={clsx('ds-dropdown-menu-option', styles.option)}
                   onClick={() => setThinkingEffort(level)}
                 >
                   <span className={styles.optionLabel}>{effortLabel[level]}</span>
+                  {level === effort ? (
+                    <span className={styles.optionCheck}>
+                      <IconCheckOutline16 />
+                    </span>
+                  ) : null}
                 </div>
               ))}
             </div>

@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { memo, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   IconPaperclipOutline16,
   IconSendOutline16,
@@ -26,13 +26,19 @@ import { ensureApiKey } from '../settings/settingsDialogState.js'
 import { DragMask, useFileDrop } from './DragMask.js'
 import { ModelPicker } from './ModelPicker.js'
 import { showToast } from '../base/toastState.js'
-import { ACCEPT, useUploads } from '../../services/attachments.js'
+import { ACCEPT, MAX_COUNT, MAX_SIZE_MB, useUploads } from '../../services/attachments.js'
 import { DraftAttachments } from './DraftAttachments.js'
 import { useVoiceInput } from './useVoiceInput.js'
 import { VoiceButton } from './VoiceButton.js'
 import { Spectrum } from './Spectrum.js'
 import { useTranslate } from '../../i18n/index.js'
 import styles from './ChatInput.module.css'
+
+/**
+ * 输入字符上限：官网 client-settings `model_configs[*].input_character_limit`
+ * 的下发值（2,621,440），见 .temp/_reference/client-settings.json。
+ */
+const INPUT_CHARACTER_LIMIT = 2_621_440
 
 /** 输入框：自适应高度的文本框 + 文件 + 深度思考与智能搜索开关 + 语音输入 + 发送 / 停止 */
 export const ChatInput = memo(function ChatInput({ sessionId }: { sessionId: string | null }) {
@@ -129,10 +135,33 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   // 移动端录音时用频谱替代输入框内容
   const recording = voice.status === 'recording'
 
+  // 官网 yG hook（bundle @656043，模块 64603 消费者）：超长百分比、提交拦截、粘贴超长提示。
+  // 徽标只在首次「提交/粘贴超长」触发 toast 后出现（官网 state n）。
+  const [overLimitShown, setOverLimitShown] = useState(false)
+  const overLimit = text.length > INPUT_CHARACTER_LIMIT
+  const overLimitPct = overLimit
+    ? `${Math.round(((text.length - INPUT_CHARACTER_LIMIT) / text.length) * 100)}%`
+    : null
+  const notifyOverLimit = (pct: string) => {
+    showToast({ key: 'inputLengthTooMuchToast', params: { count: pct }, type: 'error' })
+    setOverLimitShown(true)
+  }
+  // 官网 interceptSubmit：超长时 toast 并阻止发送
+  const interceptSubmit = () => {
+    if (overLimit && overLimitPct !== null) {
+      notifyOverLimit(overLimitPct)
+      return true
+    }
+    return false
+  }
+
   // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
 
   const send = () => {
+    if (interceptSubmit()) {
+      return
+    }
     if (
       useChatStore.getState().importingHistory ||
       voice.status !== 'idle' ||
@@ -191,6 +220,14 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             if (files.length > 0) {
               event.preventDefault()
               acceptFiles(files)
+              return
+            }
+            // 官网 notifyPasteOverLimit：粘贴超长文本不阻止粘贴，仅 toast 提示
+            const pastedText = event.clipboardData.getData('text/plain')
+            if (pastedText.length > INPUT_CHARACTER_LIMIT) {
+              notifyOverLimit(
+                `${Math.round(((pastedText.length - INPUT_CHARACTER_LIMIT) / pastedText.length) * 100)}%`
+              )
             }
           }}
         />
@@ -231,6 +268,12 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             </button>
           </Tooltip>
         </div>
+        {/* 官网超长百分比徽标（yW.X）：首次提交/粘贴超长触发 toast 后出现 */}
+        {overLimitShown && overLimitPct !== null ? (
+          <span className={styles.overLimitBadge}>
+            {t('inputOverLimitPercentage', { count: overLimitPct })}
+          </span>
+        ) : null}
         <div className={styles.right}>
           {/* 语音输入来自官方开源 chat-demo 仓库（官网线上版没有），属于官方功能，保留 */}
           <VoiceButton
@@ -246,14 +289,21 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               }
             }}
           />
-          <IconButton
-            size="m"
-            tone="primary"
-            icon={<IconPaperclipOutline16 />}
-            tooltip={t('uploadFile')}
-            disabled={importingHistory}
-            onClick={() => ensureApiKey() && fileInputRef.current?.click()}
-          />
+          {/* 官网 27872：上传按钮 tooltip 显示模型上传限制（最多 N 个，每个 M MB） */}
+          <Tooltip
+            content={t('uploadFileButtonTooltipDesc', {
+              count: MAX_COUNT,
+              size: MAX_SIZE_MB,
+            })}
+          >
+            <IconButton
+              size="m"
+              tone="primary"
+              icon={<IconPaperclipOutline16 />}
+              disabled={importingHistory}
+              onClick={() => ensureApiKey() && fileInputRef.current?.click()}
+            />
+          </Tooltip>
           <input
             ref={fileInputRef}
             type="file"

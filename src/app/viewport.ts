@@ -1,6 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 
-/** 窄于 768px 按移动端布局 */
+// 官网 @96461 的 UA 维度 isMobile（Q.yA.isMobile，真移动/平板设备，桌面恒 false）
+const isMobileUA = (() => {
+  const uaData = (navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData
+  if (uaData?.platform) {
+    return /^(mobile|tablet)$/i.test(uaData.platform)
+  }
+  return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent)
+})()
+
+export const isMobileDevice = isMobileUA
+
+// 布局断点：宽度 <768，官网 CSS @media (min-width:768px) 的互补区间
 const query = window.matchMedia('not all and (min-width: 768px)')
 
 const subscribe = (onChange: () => void) => {

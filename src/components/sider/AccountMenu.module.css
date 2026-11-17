@@ -68,3 +68,61 @@
   margin-right: 8px;
   color: var(--dsw-alias-label-tertiary);
 }
+
+/* ===== 「项目仓库」hover 二维码浮层 —— 官网原始实现（模块 86018 vC=_5a6ad65 + Tooltip style） ===== */
+/* 官网 bh（bundle @819830）：Tooltip 内容 style {color: var(--dsw-specific-menu),
+   padding: 8px 8px 12px 8px}（color 经容器 currentcolor 转为背景），卡片 _5a6ad65：
+   radius 10、阴影 0 0 1px .2 / 0 0 4px .02 / 0 12px 32px .08、color label-tertiary；
+   img 160×160 radius 8 mb 4；文字 Qq=_9e0c9c6：12px/18px。锚点=菜单项行（positionDomRef），
+   placement 移动端 left-start / 桌面 right-start，flip 兜底 top-start。
+   portal 渲染：菜单项 overflow:auto 会裁剪普通 absolute 浮层。 */
+
+.repoLabel {
+  display: inline-flex;
+  align-items: center;
+  flex: 1;
+  cursor: inherit;
+}
+
+/* 官网 label 占满整行（锚定行后保留，hover 区域更大） */
+.repoOption > :global(.ds-dropdown-menu-option__label) {
+  display: flex;
+  flex: 1 1 auto;
+}
+
+.repoQrFloat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 10px;
+  background-color: var(--dsw-specific-menu);
+  color: var(--dsw-alias-label-tertiary);
+  box-shadow:
+    0 0 1px rgba(0, 0, 0, 0.2),
+    0 0 4px rgba(0, 0, 0, 0.02),
+    0 12px 32px rgba(0, 0, 0, 0.08);
+  padding: 8px 8px 12px 8px;
+  white-space: nowrap;
+}
+
+.repoQrImage {
+  display: block;
+  width: 160px;
+  height: 160px;
+  margin-bottom: 4px;
+  /* 圆角裁剪 SVG 的方形白底；深浅色模式下二维码都保持白底（SVG 自带白 rect） */
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.repoQrImage svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.repoQrText {
+  font-size: 12px;
+  line-height: 18px;
+}

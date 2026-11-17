@@ -11,12 +11,15 @@ export const FadeInZoomIn = ({
   in: inProp,
   appear = false,
   animated = true,
+  slideUp = false,
   onExited,
   children,
 }: {
   in: boolean
   appear?: boolean
   animated?: boolean
+  /** 本项目自定：自下而上（移动端 bottom sheet），替代官方 zoom-in */
+  slideUp?: boolean
   onExited?: () => void
   children: (nodeRef: RefObject<HTMLDivElement>) => ReactNode
 }) => {
@@ -32,14 +35,25 @@ export const FadeInZoomIn = ({
       appear={appear}
       in={inProp}
       timeout={100}
-      classNames={{
-        appear: 'ds-fade-in-zoom-in-enter',
-        appearActive: 'ds-fade-in-zoom-in-active',
-        enter: 'ds-fade-in-zoom-in-enter',
-        enterActive: 'ds-fade-in-zoom-in-active',
-        exit: 'ds-fade-in-zoom-in-exit',
-        exitActive: 'ds-fade-in-zoom-in-exit-active',
-      }}
+      classNames={
+        slideUp
+          ? {
+              appear: 'ds-slide-up-enter',
+              appearActive: 'ds-slide-up-active',
+              enter: 'ds-slide-up-enter',
+              enterActive: 'ds-slide-up-active',
+              exit: 'ds-slide-up-exit',
+              exitActive: 'ds-slide-up-exit-active',
+            }
+          : {
+              appear: 'ds-fade-in-zoom-in-enter',
+              appearActive: 'ds-fade-in-zoom-in-active',
+              enter: 'ds-fade-in-zoom-in-enter',
+              enterActive: 'ds-fade-in-zoom-in-active',
+              exit: 'ds-fade-in-zoom-in-exit',
+              exitActive: 'ds-fade-in-zoom-in-exit-active',
+            }
+      }
       onExited={onExited}
       unmountOnExit
     >

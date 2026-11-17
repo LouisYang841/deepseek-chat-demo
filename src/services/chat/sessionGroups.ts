@@ -15,7 +15,7 @@ export const groupSessions = (sessions: SessionSummary[], now: number, t = trans
 
   const pinned = sessions.filter((session) => session.pinned)
   if (pinned.length > 0) {
-    groups.push({ key: 'pinned', label: t('sessionHistoryTimelineLabelPinned'), sessions: pinned })
+    groups.push({ key: 'pinned', label: t('pinnedSectionTitle'), sessions: pinned })
   }
 
   for (const session of sessions) {

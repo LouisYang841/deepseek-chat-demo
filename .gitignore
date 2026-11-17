@@ -8,8 +8,8 @@ build/
 .env
 .env.*
 !.env.example
-tmp/
-# 本地登录态凭据，切勿提交
+.temp/
+.dsh/
 cookie.txt
 cookies.txt
 cookies.json

@@ -186,6 +186,29 @@ export const AssistantMessage = memo(function AssistantMessage({
               {t('continueGenerating')}
             </Button>
           ) : null}
+          {/* 官网 20528：末条回复出错时的恢复行；官网走 resumeCompletion API，我们等价重新生成 */}
+          {isLast && message.status === 'error' ? (
+            <div className={styles.resumeRow}>
+              <Button
+                variant="outlined"
+                size="s"
+                className={styles.resumeRetry}
+                disabled={busy}
+                onClick={() => {
+                  stopReadAloud()
+                  regenerateReply(sessionId, message.id)
+                }}
+              >
+                {t('resumeFailRetry')}
+              </Button>
+              <div className={styles.resumeHint}>
+                <span className={styles.resumeIcon}>
+                  <IconWarningOutline16 />
+                </span>
+                {t('resumeFail')}
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

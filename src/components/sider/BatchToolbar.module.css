@@ -21,7 +21,7 @@
   user-select: none;
 }
 
-/* 关闭按钮：28px 白色圆形 + 1px 边框（与官网一致） */
+/* 关闭按钮：官网 _2780ca7 —— 28px 圆形 + 1px 边框 + 浮起底色，hover 浮起 hover 色 */
 .close {
   display: flex;
   align-items: center;
@@ -32,7 +32,7 @@
   padding: 0;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 50%;
-  background-color: var(--dsw-alias-bg-layer-2);
+  background-color: var(--dsw-alias-button-floating-fill);
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   outline: none;

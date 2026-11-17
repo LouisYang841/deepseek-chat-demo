@@ -49,6 +49,8 @@ export type PopoverProps = {
   placement?: Placement
   offsetOptions?: { mainAxis?: number; crossAxis?: number }
   flipOptions?: { fallbackPlacements?: Placement[] }
+  /** 官方 positionDomRef：浮层锚定到该元素而非触发器（官网二维码浮层锚定菜单项行时使用） */
+  anchorRef?: RefObject<HTMLElement | null>
   /** 是否播放进出场动画（官方 floatingAnimated） */
   floatingAnimated?: boolean
   /** 浮层是否常驻（官方 wrapperDisplayPolicy，默认 keepAfterFirstOpen） */
@@ -85,6 +87,7 @@ export const Popover = ({
   placement = 'bottom-start',
   offsetOptions,
   flipOptions,
+  anchorRef,
   floatingAnimated = true,
   wrapperDisplayPolicy = 'keepAfterFirstOpen',
   onIsOpenChange,
@@ -156,9 +159,10 @@ export const Popover = ({
     }
   }, [isOpen, onClickoutside, setOpen])
 
-  // 定位：与官方一致的 autoUpdate + computePosition
+  // 定位：与官方一致的 autoUpdate + computePosition；
+  // anchorRef 提供时（官方 positionDomRef）锚定到它而非触发器元素
   useLayoutEffect(() => {
-    const reference = referenceRef.current
+    const reference = anchorRef?.current ?? referenceRef.current
     const floating = floatingRef.current
     if (!isOpen || !reference || !floating) {
       return
@@ -169,7 +173,12 @@ export const Popover = ({
         mainAxis: offsetOptions?.mainAxis ?? 0,
         crossAxis: offsetOptions?.crossAxis ?? 0,
       }),
-      flip({ padding: 8, fallbackPlacements: flipOptions?.fallbackPlacements }),
+      // 官网只在横向放不下时避让；crossAxis 默认 true 会因纵向溢出翻转，纵向交 shift 收拢
+      flip({
+        padding: 8,
+        crossAxis: false,
+        fallbackPlacements: flipOptions?.fallbackPlacements,
+      }),
       shift({ padding: 8 }),
     ]
 
@@ -186,7 +195,7 @@ export const Popover = ({
 
     update()
     return autoUpdate(reference, floating, update)
-  }, [isOpen, placement, offsetOptions?.mainAxis, offsetOptions?.crossAxis, flipOptions?.fallbackPlacements])
+  }, [isOpen, placement, anchorRef, offsetOptions?.mainAxis, offsetOptions?.crossAxis, flipOptions?.fallbackPlacements])
 
   const keepWrapper =
     wrapperDisplayPolicy === 'alwaysKeep' ||

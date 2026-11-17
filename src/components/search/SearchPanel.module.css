@@ -87,6 +87,7 @@
 }
 
 @media not all and (min-width: 768px) {
+  /* 移动端面板常驻但默认隐藏，否则 fixed 全屏的白底会盖住欢迎页造成白屏 */
   .panel {
     position: fixed;
     inset: 0;
@@ -95,11 +96,15 @@
     width: auto;
     border-left: none;
     transition: none;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .open {
     flex-basis: auto;
     width: auto;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .inner {

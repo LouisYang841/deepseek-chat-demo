@@ -117,6 +117,32 @@ body {
   transform: scale(0.96);
 }
 
+/* ---------- slide-up（本项目自定：移动端 bottom sheet 自下而上） ----------
+ * 结构沿用官方 ds-fade-in-zoom-in-*，仅把 scale 换成 translateY：
+ * 从底部 48px 升起 / 退出时沉回底部，时长曲线与官方一致。 */
+.ds-slide-up-enter {
+  opacity: 0;
+  transform: translateY(48px);
+}
+.ds-slide-up-active {
+  opacity: 1;
+  transition:
+    opacity var(--ds-ease-in) var(--ds-transition-duration-fast),
+    transform var(--ds-ease-in) var(--ds-transition-duration-fast);
+  transform: translateY(0);
+}
+.ds-slide-up-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+.ds-slide-up-exit-active {
+  opacity: 0;
+  transition:
+    opacity var(--ds-ease-out) var(--ds-transition-duration-fast),
+    transform var(--ds-ease-out) var(--ds-transition-duration-fast);
+  transform: translateY(48px);
+}
+
 /* 官方按 floating-ui 的最终 placement 设置 transform-origin */
 [data-transform-origin='bottom'] .ds-fade-in-zoom-in-enter,
 [data-transform-origin='bottom'] .ds-fade-in-zoom-in-exit {

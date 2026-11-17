@@ -500,6 +500,12 @@ export const renameSession = (id: string, title: string) => {
  * 批量置顶 / 取消置顶。列表与本地缓存同时更新，再落库；
  * 置顶只影响排序与分组，不改变会话内容。
  */
+/** 官网置顶数量上限：feature `pinned_session_limit` 的默认值（bundle @759674） */
+export const PINNED_SESSION_LIMIT = 99
+
+/** 会话是否为空（无任何消息）；未加载进缓存的会话按非空处理（官网 useIsNewEmptySession 语义） */
+export const isEmptySession = (id: string): boolean =>
+  get().sessionCache[id]?.messages.length === 0
 export const setSessionsPinned = async (ids: string[], pinned: boolean): Promise<void> => {
   if (ids.length === 0) {
     return

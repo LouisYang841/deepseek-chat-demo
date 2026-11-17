@@ -25,6 +25,65 @@
   color: var(--dsw-alias-label-primary);
 }
 
+.titleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 官网 _V：标题可点击进入重命名 */
+.titleClickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 官网 e37a04e4 + 主题 _W：重命名输入（40px 高、radius 22、padding 0 12px、focus 品牌边框） */
+.renameInput {
+  box-sizing: border-box;
+  width: 320px;
+  max-width: 480px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 22px;
+  font: var(--dsw-font-s-strong-14);
+  color: var(--dsw-alias-label-primary);
+  background-color: transparent;
+  outline: none;
+}
+
+.renameInput:focus {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+/* 官网 _U（45107）：模型名标签 —— 容器上移 5px、图标品牌色 mr4、名 xxxs-strong-11 */
+.modelTag {
+  display: flex;
+  position: relative;
+  top: -5px;
+  width: fit-content;
+  align-items: center;
+  margin-bottom: -5px;
+  user-select: none;
+}
+
+.modelTagIcon {
+  display: flex;
+  flex-shrink: 0;
+  margin-right: 4px;
+  color: var(--dsw-alias-brand-text);
+}
+
+.modelTagName {
+  overflow: hidden;
+  font: var(--dsw-font-xxxs-strong-11);
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .withCollapsedSider {
   margin-left: 113px;
 }

@@ -7,7 +7,7 @@ import {
   IconDownloadOutline16,
   IconFollowsystemOutline16,
   IconLightOutline16,
-  IconLinkOutline16,
+  IconTermsDocumentOutline16,
   IconSettingsOutline16,
   IconUploadOutline14,
   IconUserOutline16,
@@ -35,6 +35,7 @@ import { useTranslate, type TranslationKey, type TranslationMessage } from '../.
 import { Button } from '../base/Button.js'
 import { IconButton } from '../base/IconButton.js'
 import { Modal } from '../base/Modal.js'
+import { ScrollArrows } from '../base/ScrollArrows.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
@@ -55,7 +56,14 @@ export const SettingsDialog = () => {
       pruneBlankProviders()
     }
   }, [open])
-  return open ? <SettingsContent /> : null
+  // 保持挂载直到 Modal 播完退出动画（onClose 在 onExited 后回调），否则收起时一闪消失
+  const [rendered, setRendered] = useState(open)
+  useEffect(() => {
+    if (open) {
+      setRendered(true)
+    }
+  }, [open])
+  return rendered ? <SettingsContent onClosed={() => setRendered(false)} /> : null
 }
 
 const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode }[] = [
@@ -66,10 +74,10 @@ const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode
   },
   { value: 'account', label: 'settingDialogAsideAccountOptionLabel', icon: <IconUserOutline16 /> },
   { value: 'data', label: 'settingDialogAsideDataOptionLabel', icon: <IconDataOutline16 /> },
-  { value: 'terms', label: 'settingDialogAsideTermsOptionLabel', icon: <IconLinkOutline16 /> },
+  { value: 'terms', label: 'settingDialogAsidePolicyOptionLabel', icon: <IconTermsDocumentOutline16 /> },
 ]
 
-const SettingsContent = () => {
+const SettingsContent = ({ onClosed }: { onClosed: () => void }) => {
   const t = useTranslate()
   const isMobile = useIsMobile()
   // 分组放进全局状态，便于 URL hash 记住刷新后仍停留在同一子页面
@@ -88,19 +96,22 @@ const SettingsContent = () => {
         closable
         className={styles.dialog}
         mainClassName={styles.dialogMain}
+        wrapperClassName={styles.dialogWrapper}
+        slideUp={isMobile}
         onClose={() => {
           if (!historyDelete.busy) {
             closeSettings()
+            onClosed()
           }
         }}
       >
-        <div role="tablist" className={styles.navigation}>
+        {/* 官网 bi：横向滚动容器 ScrollArrows（f$）包住导航按钮，
+            内容超出时两端出现渐变遮罩 + 箭头按钮，而非滚动条 */}
+        <ScrollArrows wrapperClassName={styles.navigationWrap} className={styles.navigation}>
           {sections.map((item) => (
             <button
               key={item.value}
               type="button"
-              role="tab"
-              aria-selected={section === item.value}
               className={clsx(styles.navItem, section === item.value && styles.navItemActive)}
               onClick={() => setSection(item.value)}
             >
@@ -108,7 +119,7 @@ const SettingsContent = () => {
               {t(item.label)}
             </button>
           ))}
-        </div>
+        </ScrollArrows>
         <div role="tabpanel" className={styles.content}>
           {section === 'general' ? (
             <>

@@ -167,6 +167,7 @@ export const Dropdown = ({
                   option.className
                 )}
                 onMouseEnter={() => setPending(option.key)}
+                onMouseLeave={() => setPending(null)}
                 onClick={(event) => {
                   event.stopPropagation()
                   onSelect(option.key, option)

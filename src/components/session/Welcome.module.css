@@ -12,8 +12,10 @@
   box-sizing: border-box;
   width: 100%;
   max-width: var(--message-list-max-width);
+  /* 官网原始：margin:auto 让「问候语+输入框」整体垂直居中，移动端不贴底 */
   margin: auto;
   padding: 0 32px 64px;
+  position: relative;
 }
 
 /* 问候语：品牌图标在左，文字在右，整体居中 */
@@ -52,6 +54,7 @@
   user-select: none;
 }
 
+/* 官网原始阈值：not all and (min-width:440px) 即宽度 < 440px */
 @media (max-width: 439px) {
   .greeting {
     font-size: 20px;
@@ -65,18 +68,21 @@
     flex-direction: column;
   }
 
+  /*
+   * 官网原始：移动端 welcome 仍用 margin:auto 整体居中（见 _9a2f8e4），
+   * 不贴底。问候语 margin-top:auto / margin-bottom:21px。
+   * 这里只补移动端内边距与 safe-area，不动居中逻辑。
+   */
   .welcome {
-    flex: 1;
-    min-height: 0;
-    justify-content: flex-end;
-    max-width: none;
-    margin: 0;
-    padding: 0 16px env(safe-area-inset-bottom);
+    max-width: 712px;
+    padding: 0 32px 64px;
   }
 
   .greeting {
     flex-shrink: 0;
-    margin: auto 0;
+    flex-wrap: wrap;
+    margin-top: auto;
+    margin-bottom: 21px;
   }
 
   .caveat {

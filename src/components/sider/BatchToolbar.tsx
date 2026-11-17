@@ -1,10 +1,18 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import clsx from 'clsx'
 import { useTranslate } from '../../i18n/index.js'
-import { removeSession, setSessionsPinned, useChatStore } from '../../services/chat/store.js'
-import { exitBatchMode, useBatchStore } from '../../services/chat/batch.js'
+import {
+  isEmptySession,
+  removeSession,
+  setSessionsPinned,
+  useChatStore,
+  PINNED_SESSION_LIMIT,
+} from '../../services/chat/store.js'
+import { exitBatchMode, setBatchSelection, useBatchStore } from '../../services/chat/batch.js'
 import { showToast } from '../base/toastState.js'
 import { Button } from '../base/Button.js'
+import { IconButton } from '../base/IconButton.js'
+import { IconCloseFill14 } from '../base/icons.js'
 import { Modal } from '../base/Modal.js'
 import styles from './BatchToolbar.module.css'
 
@@ -48,22 +56,15 @@ export const BatchTopBar = () => {
           ? t('batchSelectedCount', { count: selected.length })
           : t('batchSelectChatTitle')}
       </span>
-      <button
-        type="button"
+      <IconButton
+        size="xs"
         className={styles.close}
+        icon={<IconCloseFill14 />}
+        tooltip={t('batchExit')}
         aria-label={t('batchSelectCloseButtonAriaLabel')}
         aria-keyshortcuts="Escape"
         onClick={exitBatchMode}
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-          <path
-            d="M3 3L9 9M9 3L3 9"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
+      />
     </div>
   )
 }
@@ -77,17 +78,64 @@ export const BatchBottomBar = () => {
   const sessions = useChatStore((state) => state.sessions)
   const selected = useBatchStore((state) => state.selected)
   const [confirming, setConfirming] = useState(false)
+  /** 置顶确认弹窗方向：官网批量条的置顶与取消置顶都要确认（known-issues-re.md 项 3） */
+  const [pinDirection, setPinDirection] = useState<'pin' | 'unpin' | null>(null)
   const [pending, setPending] = useState(false)
+  // Modal 关闭函数：先播退出动画，onExited 后回调 onClose 卸载
+  const pinCloseRef = useRef<(() => void) | null>(null)
+  const deleteCloseRef = useRef<(() => void) | null>(null)
 
   const allPinned = selected.length > 0 && selected.every((id) => sessions.find((s) => s.id === id)?.pinned)
 
-  const togglePin = async () => {
+  const togglePin = () => {
     if (selected.length === 0 || pending) {
       return
     }
+    setPinDirection(allPinned ? 'unpin' : 'pin')
+  }
+
+  /** 官网批量置顶确认后的 run 逻辑（bundle @822600-823400）：空会话 / 部分为空 / 超限 / 成功 */
+  const runPin = async (pinned: boolean) => {
+    const ids = [...selected]
+    const emptyIds = pinned ? ids.filter(isEmptySession) : []
+    if (pinned && emptyIds.length === ids.length) {
+      // 选择的会话全为空：toast 后留在多选（官网不执行置顶）
+      showToast({ key: 'selectedChatEmpty', type: 'error' })
+      pinCloseRef.current?.()
+      return
+    }
+    if (pinned) {
+      // 官网置顶上限：feature pinned_session_limit 默认 99（bundle @759674）
+      const pinnedCount = useChatStore.getState().sessions.filter((s) => s.pinned).length
+      const willPin = ids.filter((id) => !sessions.find((s) => s.id === id)?.pinned && !isEmptySession(id)).length
+      if (pinnedCount + willPin > PINNED_SESSION_LIMIT) {
+        showToast({ key: 'pinSessionTooMany', type: 'error' })
+        pinCloseRef.current?.()
+        return
+      }
+    }
     setPending(true)
     try {
-      await setSessionsPinned(selected, !allPinned)
+      const nonEmpty = ids.filter((id) => !emptyIds.includes(id))
+      await setSessionsPinned(nonEmpty, pinned)
+      const applied = useChatStore.getState().sessions.every(
+        (s) => !nonEmpty.includes(s.id) || s.pinned === pinned
+      )
+      if (!applied) {
+        showToast({ key: pinned ? 'pinSessionFailed' : 'unpinSessionFailed', type: 'error' })
+      } else if (emptyIds.length > 0) {
+        // 部分为空：提示「仅置顶 N 个对话」并清掉空会话的选择（官网 @822600）
+        showToast({ key: 'partialChatsPinned', params: { count: nonEmpty.length } })
+        setBatchSelection(ids.filter((id) => !emptyIds.includes(id)))
+      } else {
+        showToast({
+          key: pinned ? 'sessionBatchPinSuccessToast' : 'sessionBatchUnpinSuccessToast',
+          params: { count: nonEmpty.length },
+        })
+      }
+      // 官网：确认后关闭弹窗（先播退出动画）并退出多选
+      pinCloseRef.current?.()
+      exitBatchMode()
     } finally {
       setPending(false)
     }
@@ -100,7 +148,7 @@ export const BatchBottomBar = () => {
           type="button"
           className={styles.action}
           disabled={selected.length === 0 || pending}
-          onClick={() => void togglePin()}
+          onClick={togglePin}
         >
           <PinIcon />
           {allPinned ? t('batchUnpin') : t('batchPin')}
@@ -116,9 +164,35 @@ export const BatchBottomBar = () => {
           {t('batchDelete')}
         </button>
       </div>
+      {pinDirection ? (
+        <Modal
+          title={t(
+            pinDirection === 'unpin' ? 'sessionBatchUnpinAlert' : 'sessionBatchPinAlert',
+            { count: selected.length }
+          )}
+          closeRef={pinCloseRef}
+          onClose={() => {
+            if (!pending) {
+              setPinDirection(null)
+            }
+          }}
+          footer={
+            <>
+              {/* 官网：取消置顶的取消位是「保留」，置顶的取消位是「取消」；确认位是 primary filled */}
+              <Button variant="outlined" disabled={pending} onClick={() => pinCloseRef.current?.()}>
+                {pinDirection === 'unpin' ? t('sessionBatchUnpinDialogKeepButton') : t('cancel')}
+              </Button>
+              <Button disabled={pending} onClick={() => void runPin(pinDirection === 'pin')}>
+                {pinDirection === 'unpin' ? t('unpinSession') : t('pinSession')}
+              </Button>
+            </>
+          }
+        />
+      ) : null}
       {confirming ? (
         <Modal
           title={t('batchDeleteConfirmTitle', { count: selected.length })}
+          closeRef={deleteCloseRef}
           onClose={() => {
             if (!pending) {
               setConfirming(false)
@@ -126,7 +200,7 @@ export const BatchBottomBar = () => {
           }}
           footer={
             <>
-              <Button variant="outlined" disabled={pending} onClick={() => setConfirming(false)}>
+              <Button variant="outlined" disabled={pending} onClick={() => deleteCloseRef.current?.()}>
                 {t('cancel')}
               </Button>
               <Button
@@ -134,6 +208,8 @@ export const BatchBottomBar = () => {
                 disabled={pending}
                 onClick={async () => {
                   setPending(true)
+                  // 官网删除期间先提示「正在删除」（sessionBatchDeletingToast）
+                  showToast({ key: 'sessionBatchDeletingToast' })
                   try {
                     let failed = 0
                     for (const id of selected) {
@@ -145,7 +221,8 @@ export const BatchBottomBar = () => {
                     if (failed > 0) {
                       showToast({ key: 'sessionDeleteFailed', type: 'error' })
                     }
-                    setConfirming(false)
+                    // 先播退出动画，onExited 后 onClose 再卸载
+                    deleteCloseRef.current?.()
                     exitBatchMode()
                   } finally {
                     setPending(false)

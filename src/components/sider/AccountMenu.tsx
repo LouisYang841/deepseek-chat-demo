@@ -1,9 +1,19 @@
 import clsx from 'clsx'
+import { useMemo, useRef } from 'react'
+import { isMobileDevice } from '../../app/viewport.js'
 import { useTranslate } from '../../i18n/index.js'
-import { useSettings } from '../../services/settings.js'
+import { setApiKey, useSettings } from '../../services/settings.js'
 import { openSettings } from '../settings/settingsDialogState.js'
+import { showToast } from '../base/toastState.js'
 import { Dropdown, type DropdownOption } from '../base/Dropdown.js'
-import { IconGithubMark16, IconSettingsGear16 } from './AccountIcons.js'
+import { Popover } from '../base/Popover.js'
+import { createDotQrSvg } from './qrDots.js'
+import {
+  IconGithubMark16,
+  IconHelpCircle16,
+  IconLogout16,
+  IconSettingsGear16,
+} from './AccountIcons.js'
 import styles from './AccountMenu.module.css'
 
 /**
@@ -13,6 +23,10 @@ import styles from './AccountMenu.module.css'
  *   div.row（tabIndex=0，点击展开）> 头像 / 名称 / 三点图标
  * 菜单使用官方 Dropdown：placement top-start、offset {mainAxis:4,crossAxis:-10}，
  * 打开时 ds-fade-in-zoom-in 缩放淡入（0.1s），点击外部或 Esc 收起。
+ *
+ * 菜单项按用户定制对齐官网四项结构（known-issues-re.md 项 6）：
+ *   项目仓库（hover 弹二维码浮层，点击打开仓库）/ 系统设置 / 帮助与反馈 / 退出登录。
+ * 「项目仓库」的浮层借官网「下载手机应用」的 hover 二维码机制（浮层在菜单项右侧）。
  */
 export const AccountMenu = () => {
   const t = useTranslate()
@@ -21,16 +35,65 @@ export const AccountMenu = () => {
   /** 只保留首尾各 3 位，中间用 * 代替 */
   const masked = apiKey ? `${apiKey.slice(0, 3)}******${apiKey.slice(-2)}` : null
 
+  // 仓库二维码：圆点风格，运行时按 __REPO_URL__ 生成（换仓库改 rspack.config.ts 的 repoUrl）
+  const repoQrSvg = useMemo(() => createDotQrSvg(__REPO_URL__), [])
+
+  // 官网 bh：浮层锚定到菜单元素（positionDomRef），而不是触发文字
+  const repoRowAnchorRef = useRef<HTMLElement | null>(null)
+
   const options: DropdownOption[] = [
     {
       key: 'repo',
-      label: t('projectRepo'),
+      // 官网 bh：hover 浮层，placement 移动端 left-start / 桌面 right-start，flip 兜底 top-start；
+      // 菜单项 overflow:auto 会裁剪 absolute 浮层，须 portal
+      label: (
+        <Popover
+          trigger="hover"
+          placement={isMobileDevice ? 'left-start' : 'right-start'}
+          flipOptions={{ fallbackPlacements: ['top-start'] }}
+          offsetOptions={{ mainAxis: 8 }}
+          anchorRef={repoRowAnchorRef}
+          renderTrigger={({ domRef, domProps }) => (
+            <span
+              ref={(el) => {
+                ;(domRef as { current: HTMLElement | null }).current = el
+                repoRowAnchorRef.current =
+                  (el?.closest('[role="menu"]') as HTMLElement | null) ?? null
+              }}
+              {...domProps}
+              className={styles.repoLabel}
+            >
+              {t('projectRepo')}
+            </span>
+          )}
+          renderFloating={({ nodeRef }) => (
+            <div ref={nodeRef} className={styles.repoQrFloat}>
+              <span
+                className={styles.repoQrImage}
+                // qrcode-generator 生成的可信 SVG（内容只由 __REPO_URL__ 构成）
+                dangerouslySetInnerHTML={{ __html: repoQrSvg }}
+              />
+              <span className={styles.repoQrText}>{t('scanProjectRepoQr')}</span>
+            </div>
+          )}
+        />
+      ),
       icon: <IconGithubMark16 />,
     },
     {
       key: 'settings',
       label: t('accountSystemSettings'),
       icon: <IconSettingsGear16 />,
+    },
+    {
+      key: 'helpFeedback',
+      label: t('helpFeedback'),
+      icon: <IconHelpCircle16 />,
+    },
+    {
+      key: 'logout',
+      label: t('logout'),
+      icon: <IconLogout16 />,
     },
   ]
 
@@ -43,9 +106,15 @@ export const AccountMenu = () => {
         offsetOptions={{ mainAxis: 4, crossAxis: 0 }}
         onSelect={(key) => {
           if (key === 'repo') {
-            window.open('https://github.com/hmjz100/ds-chat-demo', '_blank', 'noopener')
+            window.open(__REPO_URL__, '_blank', 'noopener')
           } else if (key === 'settings') {
             openSettings('general')
+          } else if (key === 'helpFeedback') {
+            window.open(`${__REPO_URL__}/issues`, '_blank', 'noopener')
+          } else if (key === 'logout') {
+            // 本项目语境的「退出登录」= 清除 API Key（官网为服务端登出，无确认弹窗）
+            setApiKey(null)
+            showToast({ key: 'accountSignedOut' })
           }
         }}
       >

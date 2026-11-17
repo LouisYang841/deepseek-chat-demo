@@ -108,6 +108,35 @@
   margin-left: auto;
 }
 
+/* 官网 20528 断流恢复行：_2afae7d row-reverse wrap（提示在左、重试按钮在右） */
+.resumeRow {
+  display: flex;
+  flex-flow: row-reverse wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* a7ca4730 */
+.resumeRetry {
+  margin-left: 6px;
+}
+
+/* fdd14bab */
+.resumeHint {
+  font: var(--dsw-font-s-14);
+  color: var(--dsw-alias-label-secondary);
+  text-align: left;
+}
+
+/* b2d6376f */
+.resumeIcon {
+  display: inline;
+  position: relative;
+  top: 3px;
+  margin-right: 4px;
+  color: var(--dsw-alias-state-warn-primary);
+}
+
 .summary {
   display: flex;
   align-items: center;

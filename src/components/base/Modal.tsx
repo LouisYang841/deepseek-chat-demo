@@ -9,6 +9,8 @@ import styles from './Modal.module.css'
 
 /** 当前打开的弹窗，后打开的在末尾；叠放时 Esc 只关闭最上层 */
 const openModals: object[] = []
+/** 已分配的层级序号，保证后打开的弹窗（遮罩+窗口）整体盖住先打开的 */
+let modalLayerSeq = 0
 
 /**
  * 遮罩 + 居中卡片。
@@ -29,6 +31,7 @@ export const Modal = ({
   width,
   closeRef,
   wrapperClassName,
+  slideUp = false,
 }: {
   title?: ReactNode
   children?: ReactNode
@@ -45,6 +48,8 @@ export const Modal = ({
   closeRef?: MutableRefObject<(() => void) | null>
   /** 追加到 .ds-modal-wrapper 的类（官方 wrapperClassName） */
   wrapperClassName?: string
+  /** 本项目自定：自下而上动画（移动端 bottom sheet 用） */
+  slideUp?: boolean
 }) => {
   const t = useTranslate()
   const titleId = useId()
@@ -52,6 +57,14 @@ export const Modal = ({
   const [mounted, setMounted] = useState(true)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  // 每个弹窗实例拿到一个递增层级：遮罩 = 1000 + layer*2，窗口 = +1。
+  // 于是「设置(0) → 确认(1)」的遮罩会盖住设置窗口，形成 背景/设置/背景/确认 的叠加。
+  const layerRef = useRef<number | null>(null)
+  if (layerRef.current === null) {
+    layerRef.current = modalLayerSeq++
+  }
+  const overlayZ = 1000 + layerRef.current * 2
+  const wrapperZ = overlayZ + 1
 
   const requestClose = useCallback(() => {
     if (!open) {
@@ -94,7 +107,7 @@ export const Modal = ({
           <div
             ref={nodeRef}
             className="ds-modal-overlay"
-            style={{ zIndex: 1000 }}
+            style={{ zIndex: overlayZ }}
             onMouseDown={(event) => event.target === event.currentTarget && requestClose()}
           />
         )}
@@ -107,11 +120,12 @@ export const Modal = ({
           wrapperClassName
         )}
         data-transform-origin="center"
-        style={{ zIndex: 1001 }}
+        style={{ zIndex: wrapperZ }}
       >
         <FadeInZoomIn
           in={open}
           appear
+          slideUp={slideUp}
           onExited={() => {
             setMounted(false)
             onCloseRef.current()

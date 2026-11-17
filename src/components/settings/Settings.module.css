@@ -13,13 +13,21 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* 官网 ab016168：ScrollArrows 滚动容器（桌面竖排时的外边距） */
+.navigationWrap {
+  flex-shrink: 0;
+  margin-top: 6px;
+  margin-left: -12px;
+  margin-right: 12px;
+}
+
+/* 官网 d316d158：导航内容行（桌面竖排） */
 .navigation {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   gap: 4px;
   width: 172px;
-  margin: 6px 12px 0 -12px;
   padding-top: 4px;
 }
 
@@ -171,11 +179,15 @@
 .themeOption {
   display: inline-flex;
   flex: 1;
+  flex-shrink: 0;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
-  min-width: 128px;
+  /* 官网：选项是 ds-button 默认尺寸 m，自动带 ds-button--min-width 类，
+     min-width:var(--dsl-button-min-width)=72px（特异性 0,2,0）压过 SZ 模块 _6c1fed6 的 128px，
+     配合 flex:1 均分 → 375px 视口下三块各 ~101px 一行三列（实测逐值一致） */
+  min-width: 72px;
   height: 82px;
   padding: 21px 32px;
   border: 1px solid var(--dsw-alias-border-l2);
@@ -307,25 +319,45 @@
 }
 
 @media not all and (min-width: 768px) {
+  /* 官网原始 _6c040bb：width/max-width=100vw，height=calc(100vh - 64px)，顶部圆角；
+     贴底由 wrapperClassName(.dialogWrapper) 的 align-self:flex-end 完成 */
   .dialog {
-    align-self: flex-end;
-    width: 100%;
-    max-width: none;
-    height: calc(100% - 64px);
+    width: 100vw;
+    max-width: 100vw;
+    height: calc(100vh - 64px);
     max-height: 800px;
     border-radius: 24px 24px 0 0;
+  }
+
+  /* 官网 .e390ef68.ds-modal-wrapper：padding:0 + ds-modal 贴底满宽。
+     双类写法与官网一致（特异性 0,2,0），必须压过全局 .ds-modal-wrapper 的 padding:16px 0 */
+  .dialogWrapper.dialogWrapper {
+    padding: 0;
+  }
+
+  .dialogWrapper.dialogWrapper :global(.ds-modal) {
+    align-self: flex-end;
+    justify-self: stretch;
+    width: 100%;
+    margin-bottom: 0;
   }
 
   .dialogMain {
     flex-direction: column;
   }
 
-  .navigation {
-    flex-direction: row;
-    width: auto;
+  /* 官网 ab016168 移动端：横向导航贴边距，滚动交给 ScrollArrows 容器 */
+  .navigationWrap {
     margin: 6px -4px;
+  }
+
+  /* 官网 d316d158 移动端：导航改为横排，超出由两端箭头切换 */
+  .navigation {
+    width: unset;
+    flex-direction: row;
+    flex-basis: 100%;
+    margin: 0;
     padding: 4px 0;
-    overflow-x: auto;
   }
 
   .navItem {

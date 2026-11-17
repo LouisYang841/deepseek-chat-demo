@@ -16,6 +16,19 @@ body {
   --ds-font-size-m: 14px;
 
   --ds-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  /* 官网原值（chat-main.pretty.css body,.ds-theme 块）：置顶折叠动画用到 */
+  --ds-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ds-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  /* 官网原值：输入超长百分比徽标（模块 64603 X）用到 */
+  --dsw-font-xs-strong-13: 500 13px/20px var(--dsw-font-family);
+  --dsw-alias-state-warn-label: var(--dsw-static-amber-600);
+  /* 官网原值：顶栏模型名标签（_46a12ab）与标题重命名输入（e37a04e4）用到 */
+  --dsw-font-xxxs-strong-11: 500 11px/14px var(--dsw-font-family);
+  --dsw-font-s-strong-14: 500 14px/22px var(--dsw-font-family);
+  /* 官网原值：断流恢复提示行（20528 fdd14bab） */
+  --dsw-font-s-14: 14px/22px var(--dsw-font-family);
+  /* 官网 :root 原值：侧栏/抽屉宽度（dc04ec1d 抽屉内层 a2f3d50e 同用） */
+  --sider-width: 261px;
 
   --ds-font-family-code:
     Menlo, Monaco, Consolas, 'Cascadia Mono', 'Ubuntu Mono', 'DejaVu Sans Mono', 'Liberation Mono',
@@ -143,6 +156,11 @@ body {
   --dsw-alias-brand-text: var(--dsw-static-blue-500);
   --dsw-alias-button-contrast-fill: var(--dsw-static-neutral-bluish-700);
   --dsw-alias-button-elevated-fill: var(--dsw-static-neutral-bluish-00);
+  /* 官网原值：退出多选等浮起按钮（官网 _2780ca7） */
+  --dsw-alias-button-floating-fill: var(--dsw-static-neutral-bluish-00);
+  --dsw-alias-button-floating-hover: var(--dsw-static-neutral-bluish-75);
+  /* 官网原值：断流恢复提示图标（20528 b2d6376f） */
+  --dsw-alias-state-warn-primary: var(--dsw-static-amber-500);
   --dsw-alias-button-ghost-active-border: var(--dsw-static-blue-300);
   --dsw-alias-button-ghost-active-fill: var(--dsw-static-blue-50);
   --dsw-alias-button-ghost-active-hover: var(--dsw-static-blue-100);
@@ -201,6 +219,9 @@ body[data-ds-dark-theme] {
   --dsw-alias-brand-text: var(--dsw-static-blue-400);
   --dsw-alias-button-contrast-fill: var(--dsw-static-neutral-bluish-50);
   --dsw-alias-button-elevated-fill: var(--dsw-static-neutral-bluish-750);
+  --dsw-alias-button-floating-fill: var(--dsw-static-neutral-bluish-850);
+  --dsw-alias-button-floating-hover: var(--dsw-static-neutral-bluish-800);
+  --dsw-alias-state-warn-primary: var(--dsw-static-amber-500);
   --dsw-alias-button-ghost-active-border: var(--dsw-static-blue-600);
   --dsw-alias-button-ghost-active-fill: var(--dsw-static-blue-900);
   --dsw-alias-button-ghost-active-hover: var(--dsw-static-blue-800);

@@ -1,0 +1,80 @@
+/*
+ * 官网 ScrollArrows（f$ / 模块 74180）的移植：
+ * 横向内容超出时两端出现「渐变遮罩 + 箭头按钮」，箭头容器 sticky 宽度 0，
+ * 靠首尾哨兵的 IntersectionObserver 判断显隐；容器自身滚动且隐藏滚动条。
+ */
+
+/* 官网 b40079d7：滚动容器，隐藏原生滚动条 */
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  overflow: auto;
+  overscroll-behavior: none;
+  scrollbar-width: none;
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 官网 _17296f2：箭头容器 sticky 且宽度 0，遮罩溢出显示、不占布局 */
+.arrowWrap {
+  position: sticky;
+  z-index: 10;
+  display: flex;
+  width: 0;
+}
+
+/* 官网 _77c3bd0：左箭头态，遮罩整体旋转 180°（图标朝左、渐变反向） */
+.arrowWrapLeft {
+  left: 0;
+  justify-content: flex-start;
+  transform-origin: 50%;
+
+  .mask {
+    transform: rotate(180deg);
+  }
+}
+
+/* 官网 _1ef577a：右箭头态 */
+.arrowWrapRight {
+  right: 0;
+  justify-content: flex-end;
+}
+
+/* 官网 d4a936f8：80px 渐变遮罩，箭头按钮浮在上面可点 */
+.mask {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 80px;
+  height: 100%;
+  padding-right: 6px;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0%) 0%, var(--dsw-alias-bg-layer-2) 60%);
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+/* 官网 _9ebd84c / _0d5f28a：首尾哨兵，交给 IntersectionObserver 观察 */
+.sentinelStart {
+  position: relative;
+  z-index: 100;
+  left: 1px;
+}
+
+.sentinelEnd {
+  position: relative;
+  z-index: 100;
+  right: 5px;
+}

@@ -68,12 +68,16 @@ const CodeInfoRow = ({
           type="button"
           className={styles.button}
           onClick={async () => {
+            // 官网（模块 10081）：复制中不再触发，成功后 1s 恢复（setTimeout 1e3）
+            if (copied) {
+              return
+            }
             if (!(await copyText(code))) {
               showToast({ key: 'copyFailed' })
               return
             }
             setCopied(true)
-            setTimeout(() => setCopied(false), 1500)
+            setTimeout(() => setCopied(false), 1000)
           }}
         >
           {copied ? <IconCheckOutline16 /> : <IconCopyOutline16 />}

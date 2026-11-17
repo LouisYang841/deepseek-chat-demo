@@ -55,6 +55,8 @@ class AppleTouchIconPlugin {
 type ConfigOptions = {
   /** 公开 API 的地址，注入为 __API_ORIGIN__ */
   apiOrigin?: string
+  /** 项目仓库地址（账户菜单二维码与帮助链接），注入为 __REPO_URL__ */
+  repoUrl?: string
   /** 开发服务器配置，支持本地接口代理 */
   devServer?: Configuration['devServer']
 }
@@ -62,6 +64,7 @@ type ConfigOptions = {
 /** 创建构建配置，支持自定义 API 地址和开发服务器选项 */
 export const createConfig = ({
   apiOrigin = 'https://api.deepseek.com',
+  repoUrl = 'https://github.com/hmjz100/deepseek-chat-demo',
   devServer,
 }: ConfigOptions = {}): Configuration => ({
   mode: dev ? 'development' : 'production',
@@ -118,7 +121,10 @@ export const createConfig = ({
       meta: { 'application-version': version },
       minify: !dev,
     }),
-    new rspack.DefinePlugin({ __API_ORIGIN__: JSON.stringify(apiOrigin) }),
+    new rspack.DefinePlugin({
+      __API_ORIGIN__: JSON.stringify(apiOrigin),
+      __REPO_URL__: JSON.stringify(repoUrl),
+    }),
     new AppleTouchIconPlugin(),
     new rspack.CopyRspackPlugin({
       patterns: [

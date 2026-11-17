@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { memo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { IconEditOutline16, IconEllipsisOutline16, IconTrashOutline16 } from '../base/icons.js'
-import { renameSession, selectSession, setSessionsPinned } from '../../services/chat/store.js'
+import { renameSession, selectSession, setSessionsPinned, useChatStore, PINNED_SESSION_LIMIT } from '../../services/chat/store.js'
 import { enterBatchMode, toggleBatchSelection, useBatchStore } from '../../services/chat/batch.js'
 import { PinIcon } from './BatchToolbar.js'
 import type { SessionSummary } from '../../services/chat/types.js'
@@ -10,6 +10,7 @@ import { useDelayedValue } from '../../utils/useDelayedValue.js'
 import { IconButton } from '../base/IconButton.js'
 import { Checkbox } from '../base/Checkbox.js'
 import { Menu } from '../base/Menu.js'
+import { showToast } from '../base/toastState.js'
 import { closeMobileSider } from './mobileSiderState.js'
 import styles from './SessionItem.module.css'
 
@@ -28,6 +29,9 @@ export const SessionItem = memo(function SessionItem({
   const batchActive = useBatchStore((state) => state.active)
   const selected = useBatchStore((state) => state.selected.includes(session.id))
   const displayTitle = session.title || t('untitledChat')
+  // 官网 useIsNewEmptySession：空会话（无消息）的菜单不渲染重命名与置顶/取消置顶
+  const isEmpty = useChatStore((state) => state.sessionCache[session.id]?.messages.length === 0)
+  const pinnedCount = useChatStore((state) => state.sessions.reduce((count, item) => count + (item.pinned ? 1 : 0), 0))
 
   // 与官网一致：退出多选时保留 200ms 播放复选框收起动画
   const batchVisible = useDelayedValue({
@@ -107,18 +111,30 @@ export const SessionItem = memo(function SessionItem({
           <Menu
             onOpenChange={setMenuOpen}
             options={[
-              {
-                key: 'rename',
-                label: t('sessionItemMenuRenameOption'),
-                icon: <IconEditOutline16 />,
-                onSelect: () => setEditing(true),
-              },
-              {
-                key: session.pinned ? 'unpin' : 'pin',
-                label: session.pinned ? t('batchUnpin') : t('batchPin'),
-                icon: <PinIcon />,
-                onSelect: () => void setSessionsPinned([session.id], !session.pinned),
-              },
+              // 官网：空会话的菜单只有 多选 / 删除（不渲染重命名与置顶，见 bundle @758998）
+              ...(!isEmpty
+                ? [
+                    {
+                      key: 'rename',
+                      label: t('sessionItemMenuRenameOption'),
+                      icon: <IconEditOutline16 />,
+                      onSelect: () => setEditing(true),
+                    },
+                    {
+                      key: session.pinned ? 'unpin' : 'pin',
+                      label: session.pinned ? t('unpinSession') : t('pinSession'),
+                      icon: <PinIcon />,
+                      onSelect: () => {
+                        // 官网单项置顶入口：已达上限先提示（bundle @759674，feature pinned_session_limit 默认 99）
+                        if (!session.pinned && pinnedCount >= PINNED_SESSION_LIMIT) {
+                          showToast({ key: 'sessionBatchPinLimitToast' })
+                          return
+                        }
+                        void setSessionsPinned([session.id], !session.pinned)
+                      },
+                    },
+                  ]
+                : []),
               {
                 key: 'multiSelect',
                 label: t('batchManage'),

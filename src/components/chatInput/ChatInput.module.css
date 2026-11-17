@@ -243,6 +243,17 @@
   padding: 12px;
 }
 
+/* 官网 e02fba5f：输入超长百分比徽标（首次提交/粘贴超长后出现，warn 色小字） */
+.overLimitBadge {
+  flex-shrink: 0;
+  overflow: hidden;
+  padding-right: 4px;
+  font: var(--dsw-font-xs-strong-13);
+  color: var(--dsw-alias-state-warn-label);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .toggles {
   display: flex;
   flex: 1;

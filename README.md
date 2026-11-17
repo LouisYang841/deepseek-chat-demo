@@ -1,81 +1,81 @@
-# chat-demo
+# deepseek-chat-demo
 
-English | [简体中文](README.zh-CN.md)
+简体中文 | [English](README.en.md)
 
-A static chat demo powered by the DeepSeek API. No application backend is required: the browser connects directly to the configured API service.
+基于 DeepSeek API 的静态聊天示例。无需应用后端，浏览器直接请求配置的 API 服务。
 
-This repository is an unofficial derivative of [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo), rebuilt and extended for UI research. It is not affiliated with or endorsed by DeepSeek.
+本仓库是 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 的非官方衍生版本，用于界面研究并做了扩展，与 DeepSeek 官方无关。界面逐项对照 chat.deepseek.com 逆向实现。
 
-You can [try the app online](https://deepseek-ai.github.io/chat-demo/) or download the archive from [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases), extract it, and double-click `index.html` to use it locally without installation or a build. Enter your API key in Settings before your first chat.
+点击 [在线体验](https://hmjz100.github.io/deepseek-chat-demo/) 即可使用，也可以前往 [Releases](https://github.com/hmjz100/deepseek-chat-demo/releases) 下载压缩包，解压后双击 `index.html` 在本地使用，无需安装或构建。首次使用时，请在设置中填写 API Key。
 
-## Getting started
+## 运行
 
-Install Node.js 22.12+ and pnpm, then run:
+准备 Node.js 22.12+ 和 pnpm：
 
 ```sh
-git clone https://github.com/deepseek-ai/chat-demo.git
-cd chat-demo
+git clone https://github.com/hmjz100/deepseek-chat-demo.git
+cd deepseek-chat-demo
 pnpm install
 pnpm dev
 ```
 
-Open http://localhost:8090.
+打开 http://localhost:8090 。
 
-To build the static site:
+生成静态产物：
 
 ```sh
 pnpm build
 ```
 
-The output is written to `dist/`. Deploy it to a static web server or open `dist/index.html` directly. Opening the file directly requires browser support for storage on `file://` pages and an API service that permits their cross-origin requests.
+产物位于 `dist/`，可部署到静态服务器，也可直接打开 `dist/index.html`。直接打开时，浏览器和 API 服务需允许 `file://` 页面的存储与跨域请求。
 
-## Features
+## 功能
 
-- Multiple conversations with automatic titles, renaming, and deletion; edit prompts, regenerate replies, and switch between message branches.
-- Streaming replies, deep thinking, smart search, link reading, and source citations; stop generation or continue eligible replies.
-- Upload, paste, or drag and drop attachments; use voice input and read replies aloud. A live audio spectrum appears in the first row of the input area while recording on mobile.
-- Markdown, syntax highlighting, KaTeX math, and Mermaid diagrams. Diagrams zoom and export to PNG, SVG, or source; images open in a full-screen viewer.
-- Model and reasoning-effort picker in the composer, plus additional API providers in Settings with per-provider enable switches and model discovery from [models.dev](https://models.dev).
-- Optional content safety check (`safety_check`); refused replies keep whatever text was streamed and show a notice with the reason instead of being discarded.
-- Simplified Chinese and English, light and dark themes, mobile layouts, location settings, and chat history import and export.
+- 多会话、自动标题、重命名与删除；编辑提问、重新生成和切换消息分支。
+- 流式回答、深度思考、智能搜索、链接阅读与来源引用；支持停止和符合条件的继续生成。
+- 附件上传、粘贴与拖拽，语音输入和回复朗读；移动端录音时输入框首行显示实时频谱。
+- Markdown、代码高亮、KaTeX 公式和 Mermaid 图表；图表可缩放并导出 PNG / SVG / 源码，图片支持全屏查看。
+- 输入框内的模型与推理等级选择器；设置中可添加其他兼容 API 提供商，支持逐个启用，并从 [models.dev](https://models.dev) 获取模型信息。
+- 可选的内容安全校验（`safety_check`）；遇到拒答时保留已下发的正文，并附上拒答提示与原因，而不是清空回答。
+- 简体中文与英文、浅色与深色主题、移动端布局、位置设置、历史导入导出。
 
-## Data and storage
+## 数据与存储
 
-Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
+API Key 和设置保存在浏览器 localStorage，会话与原始附件保存在 IndexedDB。本地数据按浏览器配置文件与站点源隔离。发送消息、上传附件和使用语音功能会把相应内容发送到配置的 API 服务。
 
-Settings → Account → Model providers lets you add compatible endpoints. Their keys stay in localStorage, and the composer sends a request to the selected provider's own endpoint. Model names, vendor logos, and reasoning-capability metadata come from the public [models.dev](https://models.dev) catalog; that catalog call is the only request this app makes that does not go to your configured API service.
+设置 → 账号 → 模型提供商可添加兼容端点。这些 Key 仍保存在 localStorage，输入框会向所选提供商自己的端点发起请求。模型名称、厂商图标与推理能力元数据来自公开的 [models.dev](https://models.dev) 目录；这是应用除配置的 API 服务之外唯一会请求的外部服务。
 
-History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all local conversations and attachments. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
+设置 → 数据中的历史导入导出使用 ZIP 压缩包。确认并校验成功后，导入会替换全部本地会话与附件。导出包含会话和本地可用的原始图片，不包含 API Key、设置与原始非图片附件。归档格式与保留细节见[历史导入导出文档（中文）](src/services/chat/history/README.md)。
 
-Settings → Data → Delete all chats clears all local conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
+设置 → 数据 → 删除全部会话会在确认后清空所有本地会话、原始附件与未发送草稿，停止进行中的回复并回到新对话。API Key 与设置会保留；已上传到 API 服务的文件不会被删除。
 
-## Development
+## 开发
 
-| Command       | Description                  |
-| ------------- | ---------------------------- |
-| `pnpm dev`    | Start the development server |
-| `pnpm build`  | Build into `dist/`           |
-| `pnpm type`   | Run TypeScript type checks   |
-| `pnpm lint`   | Lint with oxlint             |
-| `pnpm format` | Format with oxfmt            |
+| 命令          | 说明         |
+| ------------- | ------------ |
+| `pnpm dev`    | 启动开发服务器 |
+| `pnpm build`  | 构建到 `dist/` |
+| `pnpm type`   | TypeScript 类型检查 |
+| `pnpm lint`   | oxlint 代码检查 |
+| `pnpm format` | oxfmt 格式化 |
 
-[rspack.config.ts](rspack.config.ts) uses `https://api.deepseek.com` by default. Use `createConfig({ apiOrigin, devServer })` to customize the API origin and development server proxy.
+[rspack.config.ts](rspack.config.ts) 默认使用 `https://api.deepseek.com`，可通过 `createConfig({ apiOrigin, devServer, repoUrl })` 自定义 API 源、开发服务器代理与仓库入口二维码链接。
 
-Chat uses `deepseek-flash` by default through Anthropic-compatible Messages / Files APIs. Speech features use ASR / TTS endpoints. Requests include extensions for search, link reading, titles, and `latest_reminder`, so the configured service must support the corresponding capabilities. Supported attachment formats are determined by server-side validation.
+会话默认通过 Anthropic 兼容的 Messages / Files API 使用 `deepseek-flash`。语音功能使用 ASR / TTS 端点。请求包含智能搜索、链接阅读、标题生成与 `latest_reminder` 等扩展，配置的服务需支持相应能力；支持的附件格式由服务端校验决定。
 
 ```text
 src/
-  app/                 Application layout, themes, and global styles
-  components/          Chat, settings, Markdown, and other UI components
-  i18n/                English and Chinese translations
+  app/                 应用布局、主题与全局样式
+  components/          聊天、设置、Markdown 等 UI 组件
+  i18n/                中英文翻译
   services/
-    api/               API requests, SSE, and protocol types
-    chat/              Conversations, message branches, storage, and history import/export
-    markdown/          Markdown parsing, syntax highlighting, and diagrams
-    speech/            Audio recording and read-aloud playback
-  utils/               Shared utilities
+    api/               API 请求、SSE 与协议类型
+    chat/              会话、消息分支、存储与历史导入导出
+    markdown/          Markdown 解析、语法高亮与图表
+    speech/            录音与朗读播放
+  utils/               通用工具
 ```
 
-## License
+## 许可
 
-[MIT](LICENSE). The build copies the license to `dist/LICENSE`; include it when distributing the app. Third-party dependencies are subject to their own licenses.
+[MIT](LICENSE)。构建会把许可文件复制到 `dist/LICENSE`，分发应用时请附带。第三方依赖遵循其各自的许可。

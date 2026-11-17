@@ -33,14 +33,14 @@ const UserAvatarIcon = () => (
   </svg>
 )
 
-/** 官方 xD：分支徽标图标（10×10） */
+/** 官方 xD：分支徽标图标（10×10，色值 var(--dsw-alias-label-caption)） */
 const BranchIcon = () => (
   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
     <path
       fillRule="evenodd"
       clipRule="evenodd"
       d="M8.17261 0.857422C8.80289 0.857551 9.31384 1.36911 9.31396 1.99939C9.31388 2.6297 8.80291 3.14062 8.17261 3.14075C7.68546 3.14075 7.27034 2.83545 7.10632 2.40588H2.72217C2.99623 2.66524 3.22413 2.97763 3.38562 3.33423L4.44153 5.66699C4.92829 6.74205 5.9694 7.45163 7.13684 7.52307C7.31783 7.13171 7.7132 6.85965 8.17261 6.85962C8.8027 6.85978 9.31393 7.37085 9.31396 8.00098C9.31394 8.63111 8.80271 9.14217 8.17261 9.14233C7.65835 9.1423 7.22335 8.80188 7.08069 8.33423C5.61675 8.24232 4.31238 7.35064 3.70178 6.00208L2.64526 3.66931C2.29689 2.90008 1.53049 2.40588 0.686035 2.40588V1.5929C0.691659 1.5929 0.697506 1.59347 0.703125 1.59351L7.10632 1.5929C7.27039 1.16332 7.68554 0.857422 8.17261 0.857422ZM8.17261 7.67261C7.99114 7.67264 7.84428 7.8195 7.84424 8.00098C7.84426 8.18246 7.99113 8.32992 8.17261 8.32996C8.35398 8.32979 8.50157 8.18238 8.50159 8.00098C8.50155 7.81958 8.35397 7.67277 8.17261 7.67261ZM8.17261 1.67041C7.99095 1.67041 7.84375 1.81776 7.84363 1.99939C7.84372 2.18105 7.99093 2.32837 8.17261 2.32837C8.35418 2.32824 8.5015 2.18097 8.50159 1.99939C8.50146 1.81784 8.35416 1.67054 8.17261 1.67041Z"
-      fill="currentColor"
+      fill="var(--dsw-alias-label-caption)"
     />
   </svg>
 )
@@ -79,6 +79,12 @@ export const SessionSearch = ({ onClose }: { onClose: () => void }) => {
   const [keyword, setKeyword] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
   const [searching, setSearching] = useState(false)
+  // 官网状态机（known-issues-re.md 项 8）映射到本地检索：
+  // - 10s 超时 → showStreamingTimeoutHint「时间可能有些久，请耐心等待...」
+  // - 查询出错 → 「搜索失败，请检查网络或 重新加载」，点按钮整查重跑（retryLoadMoreFailed 的整查分支）
+  const [slow, setSlow] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [runId, setRunId] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const requestRef = useRef(0)
   const closeRef = useRef<(() => void) | null>(null)
@@ -93,9 +99,15 @@ export const SessionSearch = ({ onClose }: { onClose: () => void }) => {
     if (!query) {
       setHits([])
       setSearching(false)
+      setSlow(false)
+      setFailed(false)
       return
     }
     setSearching(true)
+    setSlow(false)
+    setFailed(false)
+    // 官网阈值 1e4ms：到点仍未出结果 → 慢查提示
+    const slowTimer = setTimeout(() => setSlow(true), 10_000)
     const timer = setTimeout(() => {
       const id = ++requestRef.current
       void searchSessions(query)
@@ -103,17 +115,23 @@ export const SessionSearch = ({ onClose }: { onClose: () => void }) => {
           if (requestRef.current === id) {
             setHits(result)
             setSearching(false)
+            setSlow(false)
           }
         })
         .catch(() => {
           if (requestRef.current === id) {
             setHits([])
             setSearching(false)
+            setSlow(false)
+            setFailed(true)
           }
         })
     }, 200)
-    return () => clearTimeout(timer)
-  }, [keyword])
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(slowTimer)
+    }
+  }, [keyword, runId])
 
   const rows = useMemo(
     () => hits.map((hit) => ({ key: `hit-${hit.messageId}`, hit })),
@@ -155,10 +173,25 @@ export const SessionSearch = ({ onClose }: { onClose: () => void }) => {
         </div>
         {keyword.trim() ? (
           <div className={styles.results} role="listbox" aria-label={t('historySearchListAriaLabel')}>
-            {searching ? (
-              <div className={styles.hint}>{t('sessionSearching')}</div>
+            {failed ? (
+              <div className={styles.hint}>
+                {t('historySearchFailed')}{' '}
+                <button
+                  type="button"
+                  className={styles.retryButton}
+                  onClick={() => setRunId((id) => id + 1)}
+                >
+                  {t('historySearchFailedRetryButton')}
+                </button>
+              </div>
+            ) : searching ? (
+              <div className={styles.hintStack}>
+                <div>{t('sessionSearching')}</div>
+                {/* 官网 10s 超时提示（historySearchLoadMoreTimeout） */}
+                {slow ? <div className={styles.slowHint}>{t('historySearchLoadMoreTimeout')}</div> : null}
+              </div>
             ) : hits.length === 0 ? (
-              <div className={styles.hint}>{t('sessionSearchNoResult')}</div>
+              <div className={styles.hint}>{t('historySearchNoResultTip')}</div>
             ) : (
               <VirtualList
                 className={styles.virtualList}

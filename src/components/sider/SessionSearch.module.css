@@ -144,6 +144,31 @@
   text-align: center;
 }
 
+/* 慢查状态：正在搜索 + 超时提示两行 */
+.hintStack {
+  padding: 24px 8px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
+}
+
+.slowHint {
+  margin-top: 4px;
+}
+
+/* 「重新加载」行内主色按钮（官网 historySearchFailedRetryButton） */
+.retryButton {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-brand-primary);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
 /* 官方 _1e224f9：67px 高的搜索结果卡片 */
 .result {
   --conversation-search-avatar-outline-color: var(--dsw-alias-bg-layer-2);

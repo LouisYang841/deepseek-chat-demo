@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { IconEditOutline16 } from '../base/icons.js'
-import { IconLogout16 } from '../sider/AccountIcons.js'
+import { IconCloseOutline16, IconEditOutline16 } from '../base/icons.js'
 import { setApiKey, useSettings } from '../../services/settings.js'
 import { showToast } from '../base/toastState.js'
 import { useIsMobile } from '../../app/viewport.js'
@@ -32,11 +31,11 @@ export const ApiKeyField = ({ editor }: { editor: ApiKeyEditor }) => {
         {apiKey && !editing ? (
           <div className={styles.apiKeySaved}>
             <span className={styles.apiKeyMask}>{'*'.repeat(apiKey.length)}</span>
-            {/* 退出登录已移除，清除 Key 的入口放在编辑按钮左侧 */}
+            {/* 移除 Key 的入口放在编辑按钮左侧：与编辑同色，图标用 X */}
             <div className={styles.apiKeyActions}>
               <IconButton
-                tone="danger"
-                icon={<IconLogout16 />}
+                tone="primary"
+                icon={<IconCloseOutline16 />}
                 tooltip={t('apiKeyClear')}
                 onClick={() => {
                   setApiKey(null)
@@ -59,7 +58,9 @@ export const ApiKeyField = ({ editor }: { editor: ApiKeyEditor }) => {
         ) : (
           <div className={styles.apiKeyInput}>
             <input
-              type={editing && apiKey ? 'text' : 'password'}
+              // 输入框只在「首次输入」或「点编辑后」出现，两种都要明文；
+              // 保存后的掩码由上面的 apiKeyMask 负责，这里无需 password
+              type="text"
               placeholder={t('apiKeyPlaceholder')}
               autoComplete="off"
               autoCapitalize="off"

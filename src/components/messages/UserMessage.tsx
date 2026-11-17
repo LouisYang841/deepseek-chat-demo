@@ -125,10 +125,10 @@ export const UserMessage = memo(function UserMessage({
           />
           <div className={styles.editorActions}>
             <Button size="s" variant="outlined" onClick={() => setEditing(false)}>
-              {t('cancel')}
+              {t('editMessageCancelButton')}
             </Button>
             <Button size="s" disabled={!canSend} onClick={sendEdit}>
-              {t('send')}
+              {t('editMessageSendButton')}
             </Button>
           </div>
         </div>

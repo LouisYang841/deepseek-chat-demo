@@ -38,7 +38,7 @@ type Settings = {
   /** 选中的提供商 id：'deepseek' 为内置，其余对应 providers.ts 里的自定义提供商 */
   providerId: string  /** 深度思考开启时生效的思考强度 */
   thinkingEffort: ThinkingEffort
-  /** 是否开启服务端内容安全校验（safety_check: high），默认开启 */
+  /** 是否开启服务端内容安全校验（safety_check: high），默认关闭 */
   safetyCheck: boolean
 }
 
@@ -150,7 +150,8 @@ export const useSettings = create<Settings>(() => ({
     const saved = read(KEYS.thinkingEffort)
     return saved === 'deep' || saved === 'max' ? saved : 'standard'
   })(),
-  safetyCheck: read(KEYS.safetyCheck) !== 'false',
+  // 默认关闭：只有用户显式开启过才为 true
+  safetyCheck: read(KEYS.safetyCheck) === 'true',
 }))
 
 export const setModel = (model: ChatModel) => {
