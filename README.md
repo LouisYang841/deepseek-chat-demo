@@ -4,7 +4,7 @@
 
 基于 DeepSeek API 的静态聊天示例。无需应用后端，浏览器直接请求配置的 API 服务。
 
-本仓库是 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 的非官方衍生版本，用于界面研究并做了扩展，与 DeepSeek 官方无关。界面逐项对照 chat.deepseek.com 逆向实现。
+本仓库是 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 的非官方衍生版本，用于界面研究并做了扩展，与 DeepSeek 官方无关。用户界面参照 chat.deepseek.com 逐步重新实现。
 
 点击 [在线体验](https://hmjz100.github.io/deepseek-chat-demo/) 即可使用，也可以前往 [Releases](https://github.com/hmjz100/deepseek-chat-demo/releases) 下载压缩包，解压后双击 `index.html` 在本地使用，无需安装或构建。首次使用时，请在设置中填写 API Key。
 
@@ -79,3 +79,7 @@ src/
 ## 许可
 
 [MIT](LICENSE)。构建会把许可文件复制到 `dist/LICENSE`，分发应用时请附带。第三方依赖遵循其各自的许可。
+
+## 致谢
+[DeepSeek](https://www.deepseek.com/) - 探索未至之境 - 开源 Chat WebUI  
+[LINUX DO](https://linux.do) - 学 AI 上 L 站 - 开源推广
