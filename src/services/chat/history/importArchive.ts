@@ -1,3 +1,4 @@
+import type { TranslationKey, TranslationParams } from '../../../i18n/index.js'
 import * as db from '../db.js'
 import type { Session } from '../types.js'
 import { BackupError, fail } from './errors.js'
@@ -17,6 +18,19 @@ import {
 /** 会话批量写入的粒度：条数或字节数先到者为准。 */
 const STAGING_BATCH_COUNT = 128
 const STAGING_BATCH_BYTES = 8 * 1024 * 1024
+/** 读取归档阶段占总进度的比例，其余留给提交本地数据库。 */
+const STAGING_PORTION = 0.85
+/** 每写入多少个会话记一条日志。 */
+const SESSION_LOG_EVERY = 200
+
+/** 导入进度与日志事件；log 的文案由界面按当前语言翻译。 */
+export type ImportEvent = {
+  /** 0–1 的总体进度 */
+  percent: number
+  log?: { key: TranslationKey; params?: TranslationParams }
+}
+
+export type ReportImportEvent = (event: ImportEvent) => void
 
 /** 从原件字节补充图片 MIME；无法识别时为空字符串，图片身份仍由归档的 is_image 决定。 */
 const imageType = (bytes: Uint8Array): string => {
@@ -83,10 +97,18 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
  */
-export const importArchive = async (file: File): Promise<void> => {
+export const importArchive = async (file: File, report?: ReportImportEvent): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
+  let percent = 0
+  const emit = (next: number, log?: ImportEvent['log']) => {
+    percent = next
+    report?.({ percent: next, log })
+  }
+  const log = (key: TranslationKey, params?: TranslationParams) =>
+    report?.({ percent, log: { key, params } })
+  emit(0, { key: 'importLogStart' })
   const imported = new Set<string>()
   const images = new Map<string, string>()
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
@@ -146,8 +168,12 @@ export const importArchive = async (file: File): Promise<void> => {
         if (batch.length >= STAGING_BATCH_COUNT || batchBytes >= STAGING_BATCH_BYTES) {
           await flushSessions()
         }
+        if (imported.size % SESSION_LOG_EVERY === 0) {
+          log('importLogSessions', { count: imported.size })
+        }
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
+        log('importLogIndex', { count: index.length })
       } else if (
         index
           ? imported.has(/^chat_sessions\/([^/]+)_files\//.exec(path)?.[1] ?? '')
@@ -159,6 +185,7 @@ export const importArchive = async (file: File): Promise<void> => {
       } else {
         fail('backupIncomplete')
       }
+      emit(Math.min(STAGING_PORTION, (STAGING_PORTION * entry.endOffset) / file.size))
     }
     await flushSessions()
   } catch (error) {
@@ -177,5 +204,7 @@ export const importArchive = async (file: File): Promise<void> => {
   ) {
     fail('backupIncomplete')
   }
+  log('importLogImages', { count: stored.size })
   await db.updateStagingFileTypes(stored)
+  emit(0.9, { key: 'importLogStaged' })
 }

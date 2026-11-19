@@ -166,6 +166,15 @@ export const zh = {
   historyImported: '已导入 {count} 个对话',
   historyImportFailed:
     '文件导入失败，可能是文件格式错误或使用了旧版的对话导出 ZIP 文件，请前往 DeepSeek 重新导出历史对话文件后再次导入。',
+  historyImportProgressTitle: '正在导入历史对话',
+  importLogStart: '正在读取归档…',
+  importLogSessions: '已写入 {count} 个会话',
+  importLogIndex: '会话索引校验通过（{count} 个会话）',
+  importLogImages: '已读取 {count} 个图片附件',
+  importLogStaged: '本地暂存写入完成',
+  importLogCommitting: '正在替换本地历史记录…',
+  importLogDone: '导入完成，共 {count} 个会话',
+  importLogFailed: '导入失败',
   historyExportFailed: '导出失败：{message}',
   exportAllLabel: '导出所有历史对话',
   historyExportDescription:

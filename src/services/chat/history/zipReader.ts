@@ -249,6 +249,8 @@ export type ArchiveEntry = {
   path: string
   size: number
   stream: AsyncIterable<Uint8Array>
+  /** 该条目数据之后的文件偏移，用于按字节计算导入进度 */
+  endOffset: number
 }
 
 /**
@@ -308,7 +310,7 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
       }
       completed = true
     }
-    yield { path: entry.path, size: entry.size, stream: stream() }
+    yield { path: entry.path, size: entry.size, stream: stream(), endOffset: boundary }
     if (!completed) {
       invalid()
     }

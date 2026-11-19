@@ -172,6 +172,15 @@ export const en = {
   historyImported: 'Imported {count} chats',
   historyImportFailed:
     'File import failed. The file format may be invalid, or the ZIP file may use an older chat export format. Please export your chat history from DeepSeek again and retry the import.',
+  historyImportProgressTitle: 'Importing chat history',
+  importLogStart: 'Reading the archive…',
+  importLogSessions: 'Saved {count} chats',
+  importLogIndex: 'Session index verified ({count} chats)',
+  importLogImages: 'Read {count} image attachments',
+  importLogStaged: 'Local staging complete',
+  importLogCommitting: 'Replacing local history…',
+  importLogDone: 'Import finished: {count} chats',
+  importLogFailed: 'Import failed',
   historyExportFailed: 'Export failed: {message}',
   exportAllLabel: 'Export all chats',
   historyExportDescription:

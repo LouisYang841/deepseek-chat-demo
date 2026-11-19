@@ -99,7 +99,8 @@ const SettingsContent = ({ onClosed }: { onClosed: () => void }) => {
         wrapperClassName={styles.dialogWrapper}
         slideUp={isMobile}
         onClose={() => {
-          if (!historyDelete.busy) {
+          // 导入或删除进行中不允许关闭设置，避免进度与日志看不到。
+          if (!historyDelete.busy && !historyImport.busy) {
             closeSettings()
             onClosed()
           }
@@ -163,6 +164,9 @@ const SettingsContent = ({ onClosed }: { onClosed: () => void }) => {
         </div>
       </Modal>
       {historyImport.file ? <ImportConfirm historyImport={historyImport} /> : null}
+      {historyImport.run ? (
+        <ImportProgressDialog run={historyImport.run} onClose={historyImport.closeRun} />
+      ) : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
     </>
   )
@@ -440,6 +444,58 @@ const ImportConfirm = ({
   )
 }
 
+/** 导入进度：进度条 + 实时日志；导入期间不可关闭，结束后可关闭。 */
+const ImportProgressDialog = ({ run, onClose }: { run: ImportRun; onClose: () => void }) => {
+  const t = useTranslate()
+  const logRef = useRef<HTMLDivElement>(null)
+  const percent = Math.round(Math.min(1, Math.max(0, run.percent)) * 100)
+  const running = run.state === 'running'
+
+  // 日志追加后滚到底部，始终显示最新一行。
+  useEffect(() => {
+    const element = logRef.current
+    if (element) {
+      element.scrollTop = element.scrollHeight
+    }
+  }, [run.logs.length])
+
+  return (
+    <Modal
+      title={t('historyImportProgressTitle')}
+      width={520}
+      className={styles.importProgress}
+      onClose={() => {
+        if (!running) {
+          onClose()
+        }
+      }}
+      footer={
+        running ? undefined : (
+          <Button variant="outlined" size="m" autoFocus onClick={onClose}>
+            {t('close')}
+          </Button>
+        )
+      }
+    >
+      <div
+        className={styles.importProgressTrack}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+      >
+        <div className={styles.importProgressFill} style={{ width: `${percent}%` }} />
+      </div>
+      <div className={styles.importProgressPercent}>{percent}%</div>
+      <div ref={logRef} className={styles.importLog}>
+        {run.logs.map((line, index) => (
+          <div key={index}>{line}</div>
+        ))}
+      </div>
+    </Modal>
+  )
+}
+
 const themeOptions: { value: ThemePreference; label: TranslationKey; icon: ReactNode }[] = [
   {
     value: 'light',
@@ -534,25 +590,54 @@ const SettingCell = ({
   )
 }
 
-/** 选文件后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
+/** 导入进度弹窗的状态：进度、实时日志与结束状态。 */
+export type ImportRun = {
+  percent: number
+  logs: string[]
+  state: 'running' | 'done' | 'error'
+}
+
+/** 选文件后先提示覆盖；确认后显示进度与日志，结束后保留结果直到用户关闭。 */
 const useHistoryImport = () => {
+  const t = useTranslate()
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
+  const [run, setRun] = useState<ImportRun | null>(null)
   const importing = useRef(false)
+  /** 进度按 1% 步进触发渲染，避免上千次事件把界面刷爆。 */
+  const shownPercent = useRef(0)
+
+  const appendLog = (line: string) => {
+    setRun((prev) => (prev ? { ...prev, logs: [...prev.logs, line].slice(-400) } : prev))
+  }
 
   const confirm = async () => {
     if (!file || importing.current) {
       return
     }
     importing.current = true
+    const target = file
     setFile(null)
     setBusy(true)
     setStatus(null)
+    shownPercent.current = 0
+    setRun({ percent: 0, logs: [], state: 'running' })
     try {
-      const count = await importHistory(file)
+      const count = await importHistory(target, (event) => {
+        if (event.percent - shownPercent.current >= 0.01 || event.percent === 1) {
+          shownPercent.current = event.percent
+          setRun((prev) => (prev ? { ...prev, percent: event.percent } : prev))
+        }
+        if (event.log) {
+          appendLog(t(event.log.key, event.log.params))
+        }
+      })
+      setRun((prev) => (prev ? { ...prev, percent: 1, state: 'done' } : prev))
       setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
     } catch {
+      appendLog(t('importLogFailed'))
+      setRun((prev) => (prev ? { ...prev, state: 'error' } : prev))
       setStatus({ key: 'historyImportFailed', error: true })
     } finally {
       importing.current = false
@@ -560,7 +645,16 @@ const useHistoryImport = () => {
     }
   }
 
-  return { file, busy, status, select: setFile, cancel: () => setFile(null), confirm }
+  return {
+    file,
+    busy,
+    status,
+    run,
+    closeRun: () => setRun(null),
+    select: setFile,
+    cancel: () => setFile(null),
+    confirm,
+  }
 }
 
 /** 导入 = 覆盖：用选中文件替换本地全部会话与附件。 */
