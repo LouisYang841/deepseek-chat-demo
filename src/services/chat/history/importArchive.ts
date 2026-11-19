@@ -1,4 +1,4 @@
-import type { TranslationKey, TranslationParams } from '../../../i18n/index.js'
+import { translate, type TranslationKey, type TranslationParams } from '../../../i18n/index.js'
 import * as db from '../db.js'
 import type { Session } from '../types.js'
 import { BackupError, fail } from './errors.js'
@@ -19,8 +19,8 @@ import {
 /** 会话批量写入的粒度：条数或字节数先到者为准。 */
 const STAGING_BATCH_COUNT = 128
 const STAGING_BATCH_BYTES = 8 * 1024 * 1024
-/** 每写入多少个会话记一条日志。 */
-const SESSION_LOG_EVERY = 100
+/** 会话日志里标题的最大长度。 */
+const LOG_TITLE_LIMIT = 28
 /** 会话阶段占总进度的比例。 */
 const SESSION_PORTION = 0.8
 const SESSION_START = 0.02
@@ -60,6 +60,20 @@ const imageType = (bytes: Uint8Array): string => {
     return 'image/avif'
   }
   return ''
+}
+
+/** 会话标题过长时截断；空标题用当前语言的占位文案。 */
+const sessionTitle = (title: string): string => {
+  if (!title) {
+    return translate('importLogUntitled')
+  }
+  return title.length > LOG_TITLE_LIMIT ? `${title.slice(0, LOG_TITLE_LIMIT)}…` : title
+}
+
+/** 图片条目名形如 {文件 ID}_{原文件名}，日志里只留原文件名。 */
+const fileNameOf = (path: string, id: string): string => {
+  const base = path.slice(path.lastIndexOf('/') + 1)
+  return base.startsWith(`${id}_`) ? base.slice(id.length + 1) : base
 }
 
 const readJson = async (entry: ArchiveEntry): Promise<unknown> => {
@@ -114,7 +128,9 @@ export const importArchive = async (file: File, report?: ReportImportEvent): Pro
   // 中央目录已经由 checkArchiveFormat 解析并缓存，这里只做统计，不重复读文件。
   const paths = await listArchivePaths(file)
   const totalSessions = paths.filter((path) => parseSessionPath(path) !== null).length
+  const totalImages = paths.filter((path) => path.includes('_files/')).length
   log('importLogArchive', { sessions: totalSessions })
+  let savedImages = 0
   const imported = new Set<string>()
   const images = new Map<string, string>()
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
@@ -144,6 +160,12 @@ export const importArchive = async (file: File, report?: ReportImportEvent): Pro
     const type = imageType(new Uint8Array(await data.slice(0, 16).arrayBuffer()))
     await db.saveStagingFiles([{ id, blob: new Blob([data], { type }) }])
     stored.set(id, type)
+    savedImages += 1
+    log('importLogImage', {
+      done: savedImages,
+      total: totalImages,
+      name: fileNameOf(entry.path, id),
+    })
   }
 
   try {
@@ -174,9 +196,11 @@ export const importArchive = async (file: File, report?: ReportImportEvent): Pro
         if (batch.length >= STAGING_BATCH_COUNT || batchBytes >= STAGING_BATCH_BYTES) {
           await flushSessions()
         }
-        if (imported.size % SESSION_LOG_EVERY === 0 || imported.size === totalSessions) {
-          log('importLogSessions', { done: imported.size, total: totalSessions })
-        }
+        log('importLogSession', {
+          done: imported.size,
+          total: totalSessions,
+          title: sessionTitle(local.session.title),
+        })
         emit(SESSION_START + SESSION_PORTION * (imported.size / Math.max(totalSessions, 1)))
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))

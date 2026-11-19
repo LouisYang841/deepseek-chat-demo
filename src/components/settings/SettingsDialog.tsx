@@ -447,17 +447,18 @@ const ImportConfirm = ({
 /** 导入进度：进度条 + 实时日志；导入期间不可关闭，结束后可关闭。 */
 const ImportProgressDialog = ({ run, onClose }: { run: ImportRun; onClose: () => void }) => {
   const t = useTranslate()
-  const logRef = useRef<HTMLDivElement>(null)
+  const logRef = useRef<HTMLTextAreaElement>(null)
   const percent = Math.round(Math.min(1, Math.max(0, run.percent)) * 100)
   const running = run.state === 'running'
 
   // 日志追加后滚到底部，始终显示最新一行。
+  // 依赖 logs 数组本身：达到行数上限后长度不再变化，用长度会漏掉后续更新。
   useEffect(() => {
     const element = logRef.current
     if (element) {
       element.scrollTop = element.scrollHeight
     }
-  }, [run.logs.length])
+  }, [run.logs])
 
   return (
     <Modal
@@ -487,11 +488,14 @@ const ImportProgressDialog = ({ run, onClose }: { run: ImportRun; onClose: () =>
         <div className={styles.importProgressFill} style={{ width: `${percent}%` }} />
       </div>
       <div className={styles.importProgressPercent}>{percent}%</div>
-      <div ref={logRef} className={styles.importLog}>
-        {run.logs.map((line, index) => (
-          <div key={index}>{line}</div>
-        ))}
-      </div>
+      <textarea
+        ref={logRef}
+        className={styles.importLog}
+        value={run.logs.join('\n')}
+        readOnly
+        spellCheck={false}
+        aria-label={t('historyImportProgressTitle')}
+      />
     </Modal>
   )
 }
@@ -590,6 +594,9 @@ const SettingCell = ({
   )
 }
 
+/** 进度弹窗里保留的日志行数：够看最近一批文件，又不至于无限增长。 */
+const IMPORT_LOG_LIMIT = 300
+
 /** 导入进度弹窗的状态：进度、实时日志与结束状态。 */
 export type ImportRun = {
   percent: number
@@ -607,10 +614,47 @@ const useHistoryImport = () => {
   const importing = useRef(false)
   /** 进度按 1% 步进触发渲染，避免上千次事件把界面刷爆。 */
   const shownPercent = useRef(0)
+  /** 日志先攒起来，每帧统一渲染一次，保证刷屏也不卡。 */
+  const pendingLogs = useRef<string[]>([])
+  const logFrame = useRef<number | null>(null)
+
+  const flushLogs = () => {
+    if (logFrame.current !== null) {
+      cancelAnimationFrame(logFrame.current)
+      logFrame.current = null
+    }
+    const lines = pendingLogs.current.splice(0)
+    if (lines.length > 0) {
+      setRun((prev) =>
+        prev ? { ...prev, logs: [...prev.logs, ...lines].slice(-IMPORT_LOG_LIMIT) } : prev
+      )
+    }
+  }
 
   const appendLog = (line: string) => {
-    setRun((prev) => (prev ? { ...prev, logs: [...prev.logs, line].slice(-400) } : prev))
+    pendingLogs.current.push(line)
+    if (logFrame.current === null) {
+      logFrame.current = requestAnimationFrame(() => {
+        logFrame.current = null
+        const lines = pendingLogs.current.splice(0)
+        if (lines.length > 0) {
+          setRun((prev) =>
+            prev ? { ...prev, logs: [...prev.logs, ...lines].slice(-IMPORT_LOG_LIMIT) } : prev
+          )
+        }
+      })
+    }
   }
+
+  // 弹窗卸载时取消未执行的那一帧。
+  useEffect(
+    () => () => {
+      if (logFrame.current !== null) {
+        cancelAnimationFrame(logFrame.current)
+      }
+    },
+    []
+  )
 
   const confirm = async () => {
     if (!file || importing.current) {
@@ -622,6 +666,7 @@ const useHistoryImport = () => {
     setBusy(true)
     setStatus(null)
     shownPercent.current = 0
+    pendingLogs.current = []
     setRun({ percent: 0, logs: [], state: 'running' })
     try {
       const count = await importHistory(target, (event) => {
@@ -633,10 +678,12 @@ const useHistoryImport = () => {
           appendLog(t(event.log.key, event.log.params))
         }
       })
+      flushLogs()
       setRun((prev) => (prev ? { ...prev, percent: 1, state: 'done' } : prev))
       setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
     } catch {
       appendLog(t('importLogFailed'))
+      flushLogs()
       setRun((prev) => (prev ? { ...prev, state: 'error' } : prev))
       setStatus({ key: 'historyImportFailed', error: true })
     } finally {
