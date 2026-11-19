@@ -4,16 +4,18 @@
 
 A static chat demo powered by the DeepSeek API. No application backend is required: the browser connects directly to the configured API service.
 
-This repository is an unofficial derivative of [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo), rebuilt and extended for UI research. It is not affiliated with or endorsed by DeepSeek. The UI is implemented piece by piece against chat.deepseek.com.
+This repository is a fork of [hmjz100/deepseek-chat-demo](https://github.com/hmjz100/deepseek-chat-demo), which is itself an unofficial derivative of [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo), rebuilt and extended for UI research. It is not affiliated with or endorsed by DeepSeek. The UI is implemented piece by piece against chat.deepseek.com.
 
-You can [try the app online](https://hmjz100.github.io/deepseek-chat-demo/) or download the archive from [Releases](https://github.com/hmjz100/deepseek-chat-demo/releases), extract it, and double-click `index.html` to use it locally without installation or a build. Enter your API key in Settings before your first chat.
+On top of the direct upstream, this fork focuses on chat history import: batch writes, a single parse of the ZIP central directory, and an import progress dialog with a live log. See [Changes from upstream](#changes-from-upstream).
+
+You can [try the app online](https://louisyang841.github.io/deepseek-chat-demo/), or clone the repository and build it as described below. Enter your API key in Settings before your first chat.
 
 ## Getting started
 
 Install Node.js 22.12+ and pnpm, then run:
 
 ```sh
-git clone https://github.com/hmjz100/deepseek-chat-demo.git
+git clone https://github.com/LouisYang841/deepseek-chat-demo.git
 cd deepseek-chat-demo
 pnpm install
 pnpm dev
@@ -38,6 +40,13 @@ The output is written to `dist/`. Deploy it to a static web server or open `dist
 - Model and reasoning-effort picker in the composer, plus additional API providers in Settings with per-provider enable switches and model discovery from [models.dev](https://models.dev).
 - Optional content safety check (`safety_check`); refused replies keep whatever text was streamed and show a notice with the reason instead of being discarded.
 - Simplified Chinese and English, light and dark themes, mobile layouts, location settings, and chat history import and export.
+
+## Changes from upstream
+
+- History import reads the ZIP central directory in one pass and reuses the result for the same `File`, instead of issuing several async reads per entry.
+- History import writes sessions to the staging store in batches of 128 entries / 8 MB; a 1694-chat (42.6 MB) archive went from about 224 s to about 90 s on the development device.
+- History import shows a progress dialog: the bar follows the session count and each session and attachment is logged as it is processed (read-only textarea, last 300 lines, auto-scrolled).
+- The repository entry and QR code point to this repository.
 
 ## Data and storage
 
@@ -75,6 +84,20 @@ src/
     speech/            Audio recording and read-aloud playback
   utils/               Shared utilities
 ```
+
+## References
+
+The import performance and progress work was informed by a few sibling projects, all based on [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo):
+
+- [xsqxyss-jpg/fakeseek](https://github.com/xsqxyss-jpg/fakeseek): added an import progress bar, a storage-quota warning, and a pre-import session picker.
+- [Dingh0208/deepstay](https://github.com/Dingh0208/deepstay) and [leezzou/deepchat](https://github.com/leezzou/deepchat): replaced per-session staging writes with batched `addStagingSessions`.
+
+This repository reimplements those ideas; no code was copied from them.
+
+## Acknowledgements
+
+- [hmjz100/deepseek-chat-demo](https://github.com/hmjz100/deepseek-chat-demo) — the direct upstream of this fork.
+- [DeepSeek](https://www.deepseek.com/) — the open-source chat web UI.
 
 ## License
 

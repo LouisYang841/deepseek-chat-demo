@@ -4,16 +4,18 @@
 
 基于 DeepSeek API 的静态聊天示例。无需应用后端，浏览器直接请求配置的 API 服务。
 
-本仓库是 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 的非官方衍生版本，用于界面研究并做了扩展，与 DeepSeek 官方无关。用户界面参照 chat.deepseek.com 逐步重新实现。
+本仓库是 [hmjz100/deepseek-chat-demo](https://github.com/hmjz100/deepseek-chat-demo) 的 fork；后者是 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo) 的非官方衍生版本，用于界面研究并做了扩展，与 DeepSeek 官方无关。用户界面参照 chat.deepseek.com 逐步重新实现。
 
-点击 [在线体验](https://hmjz100.github.io/deepseek-chat-demo/) 即可使用，也可以前往 [Releases](https://github.com/hmjz100/deepseek-chat-demo/releases) 下载压缩包，解压后双击 `index.html` 在本地使用，无需安装或构建。首次使用时，请在设置中填写 API Key。
+本 fork 在直接上游的基础上主要加固了历史导入：大批量归档改为批量写入、单次解析中央目录，并新增了带实时日志的导入进度窗口，详见「相对上游的改动」。
+
+点击 [在线体验](https://louisyang841.github.io/deepseek-chat-demo/) 即可使用；也可以克隆仓库后按下面的步骤构建，构建出的 `dist/index.html` 可直接打开。首次使用时，请在设置中填写 API Key。
 
 ## 运行
 
 准备 Node.js 22.12+ 和 pnpm：
 
 ```sh
-git clone https://github.com/hmjz100/deepseek-chat-demo.git
+git clone https://github.com/LouisYang841/deepseek-chat-demo.git
 cd deepseek-chat-demo
 pnpm install
 pnpm dev
@@ -38,6 +40,13 @@ pnpm build
 - 输入框内的模型与推理等级选择器；设置中可添加其他兼容 API 提供商，支持逐个启用，并从 [models.dev](https://models.dev) 获取模型信息。
 - 可选的内容安全校验（`safety_check`）；遇到拒答时保留已下发的正文，并附上拒答提示与原因，而不是清空回答。
 - 简体中文与英文、浅色与深色主题、移动端布局、位置设置、历史导入导出。
+
+## 相对上游的改动
+
+- 历史导入：一次性读取 ZIP 中央目录并在同一个 `File` 上复用解析结果，不再为每个条目单独发起多次异步读取。
+- 历史导入：会话写入改为按 128 条 / 8 MB 分批提交；1694 个会话（42.6 MB）的归档在本机实测从约 224 秒降到约 90 秒。
+- 历史导入：新增进度弹窗，进度条按会话数推进，并逐个会话 / 附件实时输出日志（只读文本框，最多保留 300 行，自动滚动到底部）。
+- 仓库入口与二维码改为指向本仓库。
 
 ## 数据与存储
 
@@ -76,10 +85,20 @@ src/
   utils/               通用工具
 ```
 
+## 参考
+
+历史导入的性能与进度实现参考了同一生态里的几个衍生项目（它们都基于 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo)）：
+
+- [xsqxyss-jpg/fakeseek](https://github.com/xsqxyss-jpg/fakeseek)：为导入增加了进度条、存储不足提示，以及导入前扫描并勾选会话。
+- [Dingh0208/deepstay](https://github.com/Dingh0208/deepstay)、[leezzou/deepchat](https://github.com/leezzou/deepchat)：把逐条写入导入暂存改为 `addStagingSessions` 批量写入。
+
+本仓库的实现是在这些思路之上重写的，没有直接复制它们的代码。
+
 ## 许可
 
 [MIT](LICENSE)。构建会把许可文件复制到 `dist/LICENSE`，分发应用时请附带。第三方依赖遵循其各自的许可。
 
 ## 致谢
+[hmjz100/deepseek-chat-demo](https://github.com/hmjz100/deepseek-chat-demo) - 本仓库的直接上游  
 [DeepSeek](https://www.deepseek.com/) - 探索未至之境 - 开源 Chat WebUI  
 [LINUX DO](https://linux.do) - 学 AI 上 L 站 - 开源推广
