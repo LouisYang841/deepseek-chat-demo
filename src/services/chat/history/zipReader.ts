@@ -85,7 +85,21 @@ type Entry = {
   offset: number
 }
 
-const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: number }> => {
+type Directory = { entries: Entry[]; offset: number }
+
+/** 同一个文件只解析一次中央目录：检查格式与正式导入会先后读取同一个 File。 */
+const directories = new WeakMap<File, Promise<Directory>>()
+
+const readDirectory = (file: File): Promise<Directory> => {
+  let parsing = directories.get(file)
+  if (parsing === undefined) {
+    parsing = parseDirectory(file)
+    directories.set(file, parsing)
+  }
+  return parsing
+}
+
+const parseDirectory = async (file: File): Promise<Directory> => {
   if (file.size < 22) {
     invalid()
   }
@@ -117,6 +131,10 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
   ) {
     invalid()
   }
+  // 中央目录通常只有几百 KB：一次读完再在内存里逐条目解析。
+  // 原先每个条目要单独发 3 次异步读取，上千条目时会多花几十秒。
+  const directory = await readBytes(file, offset, size)
+  const directoryView = viewOf(directory)
   const entries: Entry[] = []
   const paths = new Set<string>()
   let cursor = 0
@@ -124,18 +142,17 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
     if (cursor + 46 > size) {
       invalid()
     }
-    const view = viewOf(await readBytes(file, offset + cursor, 46))
-    if (view.getUint32(0, true) !== 0x02014b50) {
+    if (directoryView.getUint32(cursor, true) !== 0x02014b50) {
       invalid()
     }
-    const flags = view.getUint16(8, true)
-    const method = view.getUint16(10, true)
-    const compressedSize = view.getUint32(20, true)
-    const entrySize = view.getUint32(24, true)
-    const nameLength = view.getUint16(28, true)
-    const extraLength = view.getUint16(30, true)
-    const next = cursor + 46 + nameLength + extraLength + view.getUint16(32, true)
-    const entryOffset = view.getUint32(42, true)
+    const flags = directoryView.getUint16(cursor + 8, true)
+    const method = directoryView.getUint16(cursor + 10, true)
+    const compressedSize = directoryView.getUint32(cursor + 20, true)
+    const entrySize = directoryView.getUint32(cursor + 24, true)
+    const nameLength = directoryView.getUint16(cursor + 28, true)
+    const extraLength = directoryView.getUint16(cursor + 30, true)
+    const next = cursor + 46 + nameLength + extraLength + directoryView.getUint16(cursor + 32, true)
+    const entryOffset = directoryView.getUint32(cursor + 42, true)
     // 只允许 deflate 选项、data descriptor 与 UTF-8 标志。
     if (
       flags & ~0x80e ||
@@ -144,13 +161,13 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
       entrySize === 0xffffffff ||
       (method === 0 && compressedSize !== entrySize) ||
       entryOffset >= offset ||
-      view.getUint16(34, true) !== 0 ||
-      ((view.getUint32(38, true) >>> 16) & 0xf000) === 0xa000 ||
+      directoryView.getUint16(cursor + 34, true) !== 0 ||
+      ((directoryView.getUint32(cursor + 38, true) >>> 16) & 0xf000) === 0xa000 ||
       next > size
     ) {
       invalid()
     }
-    const name = await readBytes(file, offset + cursor + 46, nameLength)
+    const name = directory.subarray(cursor + 46, cursor + 46 + nameLength)
     const path = decodePath(name, flags)
     // 目录和同名文件也不能互相覆盖。
     const identity = path.endsWith('/') ? path.slice(0, -1) : path
@@ -158,13 +175,13 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
       invalid()
     }
     paths.add(identity)
-    checkExtra(await readBytes(file, offset + cursor + 46 + nameLength, extraLength))
+    checkExtra(directory.subarray(cursor + 46 + nameLength, cursor + 46 + nameLength + extraLength))
     entries.push({
       path,
       name,
       flags,
       method,
-      crc: view.getUint32(16, true),
+      crc: directoryView.getUint32(cursor + 16, true),
       compressedSize,
       size: entrySize,
       offset: entryOffset,

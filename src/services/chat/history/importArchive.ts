@@ -1,4 +1,5 @@
 import * as db from '../db.js'
+import type { Session } from '../types.js'
 import { BackupError, fail } from './errors.js'
 import type { SessionIndexEntry } from './format.js'
 import { INDEX_PATH, MANIFEST_PATH, USER_PATH, parseSessionPath, sessionFilesDir } from './paths.js'
@@ -12,6 +13,10 @@ import {
   skipEntry,
   type ArchiveEntry,
 } from './zipReader.js'
+
+/** 会话批量写入的粒度：条数或字节数先到者为准。 */
+const STAGING_BATCH_COUNT = 128
+const STAGING_BATCH_BYTES = 8 * 1024 * 1024
 
 /** 从原件字节补充图片 MIME；无法识别时为空字符串，图片身份仍由归档的 is_image 决定。 */
 const imageType = (bytes: Uint8Array): string => {
@@ -89,6 +94,18 @@ export const importArchive = async (file: File): Promise<void> => {
   let manifest = false
   let index: SessionIndexEntry[] | undefined
   let currentSessionId: string | undefined
+  /** 待写入暂存的会话：攒满一批再走一个事务。 */
+  let batch: Session[] = []
+  let batchBytes = 0
+  const flushSessions = async () => {
+    if (batch.length === 0) {
+      return
+    }
+    const pending = batch
+    batch = []
+    batchBytes = 0
+    await db.addStagingSessions(pending)
+  }
 
   const saveImage = async (entry: ArchiveEntry, id: string) => {
     if (stored.has(id)) {
@@ -124,7 +141,11 @@ export const importArchive = async (file: File): Promise<void> => {
         for (const [imagePath, id] of local.images) {
           images.set(imagePath, id)
         }
-        await db.addStagingSession(local.session)
+        batch.push(local.session)
+        batchBytes += entry.size
+        if (batch.length >= STAGING_BATCH_COUNT || batchBytes >= STAGING_BATCH_BYTES) {
+          await flushSessions()
+        }
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
       } else if (
@@ -139,6 +160,7 @@ export const importArchive = async (file: File): Promise<void> => {
         fail('backupIncomplete')
       }
     }
+    await flushSessions()
   } catch (error) {
     throw error instanceof ArchiveError ? new BackupError('backupIncomplete') : error
   }

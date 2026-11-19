@@ -198,8 +198,18 @@ export const clearStaging = async (): Promise<void> => {
   ])
 }
 
-export const addStagingSession = async (session: Session): Promise<void> => {
-  await (await getDB()).add('sessionsStaging', session)
+export const addStagingSession = (session: Session): Promise<void> => addStagingSessions([session])
+
+/**
+ * 一次事务写入一批会话。IndexedDB 每个事务都有固定提交开销，
+ * 导入上千个会话时逐条写入会多花几分钟，批量提交可以摊薄这部分开销。
+ */
+export const addStagingSessions = async (sessions: Session[]): Promise<void> => {
+  if (sessions.length === 0) {
+    return
+  }
+  const tx = (await getDB()).transaction('sessionsStaging', 'readwrite')
+  await Promise.all([...sessions.map((session) => tx.store.add(session)), tx.done])
 }
 
 export const saveStagingFiles = (files: StoredFile[]): Promise<void> =>
