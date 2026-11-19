@@ -253,6 +253,10 @@ export type ArchiveEntry = {
   endOffset: number
 }
 
+/** 列出归档内的全部条目路径；复用已解析的中央目录，不额外读取文件。 */
+export const listArchivePaths = async (file: File): Promise<string[]> =>
+  (await readDirectory(file)).entries.map((entry) => entry.path)
+
 /**
  * 按条目在文件中的物理顺序逐条、逐块解压，跳过目录条目。
  * 调用方必须消费完当前条目的数据，再请求下一个条目。

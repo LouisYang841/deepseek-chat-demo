@@ -47,6 +47,7 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
 export const importHistory = (file: File, report?: ReportImportEvent): Promise<number> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
+    report?.({ percent: 0, log: { key: 'importLogChecking' } })
     await checkArchiveFormat(file)
     const count = await replaceHistory(async () => {
       await importArchive(file, report)

@@ -11,6 +11,7 @@ import {
   isZipFile,
   readArchive,
   readEntry,
+  listArchivePaths,
   skipEntry,
   type ArchiveEntry,
 } from './zipReader.js'
@@ -18,10 +19,11 @@ import {
 /** 会话批量写入的粒度：条数或字节数先到者为准。 */
 const STAGING_BATCH_COUNT = 128
 const STAGING_BATCH_BYTES = 8 * 1024 * 1024
-/** 读取归档阶段占总进度的比例，其余留给提交本地数据库。 */
-const STAGING_PORTION = 0.85
 /** 每写入多少个会话记一条日志。 */
-const SESSION_LOG_EVERY = 200
+const SESSION_LOG_EVERY = 100
+/** 会话阶段占总进度的比例。 */
+const SESSION_PORTION = 0.8
+const SESSION_START = 0.02
 
 /** 导入进度与日志事件；log 的文案由界面按当前语言翻译。 */
 export type ImportEvent = {
@@ -103,12 +105,16 @@ export const importArchive = async (file: File, report?: ReportImportEvent): Pro
   }
   let percent = 0
   const emit = (next: number, log?: ImportEvent['log']) => {
-    percent = next
-    report?.({ percent: next, log })
+    percent = Math.max(percent, Math.min(1, next))
+    report?.({ percent, log })
   }
   const log = (key: TranslationKey, params?: TranslationParams) =>
     report?.({ percent, log: { key, params } })
   emit(0, { key: 'importLogStart' })
+  // 中央目录已经由 checkArchiveFormat 解析并缓存，这里只做统计，不重复读文件。
+  const paths = await listArchivePaths(file)
+  const totalSessions = paths.filter((path) => parseSessionPath(path) !== null).length
+  log('importLogArchive', { sessions: totalSessions })
   const imported = new Set<string>()
   const images = new Map<string, string>()
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
@@ -168,12 +174,14 @@ export const importArchive = async (file: File, report?: ReportImportEvent): Pro
         if (batch.length >= STAGING_BATCH_COUNT || batchBytes >= STAGING_BATCH_BYTES) {
           await flushSessions()
         }
-        if (imported.size % SESSION_LOG_EVERY === 0) {
-          log('importLogSessions', { count: imported.size })
+        if (imported.size % SESSION_LOG_EVERY === 0 || imported.size === totalSessions) {
+          log('importLogSessions', { done: imported.size, total: totalSessions })
         }
+        emit(SESSION_START + SESSION_PORTION * (imported.size / Math.max(totalSessions, 1)))
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
         log('importLogIndex', { count: index.length })
+        emit(0.86)
       } else if (
         index
           ? imported.has(/^chat_sessions\/([^/]+)_files\//.exec(path)?.[1] ?? '')
@@ -185,7 +193,6 @@ export const importArchive = async (file: File, report?: ReportImportEvent): Pro
       } else {
         fail('backupIncomplete')
       }
-      emit(Math.min(STAGING_PORTION, (STAGING_PORTION * entry.endOffset) / file.size))
     }
     await flushSessions()
   } catch (error) {
@@ -205,6 +212,7 @@ export const importArchive = async (file: File, report?: ReportImportEvent): Pro
     fail('backupIncomplete')
   }
   log('importLogImages', { count: stored.size })
+  emit(0.88)
   await db.updateStagingFileTypes(stored)
   emit(0.9, { key: 'importLogStaged' })
 }
